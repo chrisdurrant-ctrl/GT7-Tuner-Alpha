@@ -120,6 +120,7 @@ export default function TuningApp() {
         antiRollBarFront: 3, antiRollBarRear: 3,
         damperExpansionFront: 6, damperExpansionRear: 6,
         damperCompressionFront: 4, damperCompressionRear: 4,
+        camberFront: 1.5, camberRear: 1.0,
         toeInFront: -0.05, toeInRear: 0.10,
         downforceFront: 50, downforceRear: 75,
         differentialInitialTorque: 15, differentialAcceleration: 80,
@@ -130,6 +131,7 @@ export default function TuningApp() {
         antiRollBarFront: 8, antiRollBarRear: 8,
         damperExpansionFront: 8, damperExpansionRear: 8,
         damperCompressionFront: 7, damperCompressionRear: 7,
+        camberFront: 3.5, camberRear: 3.0,
         toeInFront: -0.15, toeInRear: 0.25,
         downforceFront: 200, downforceRear: 300,
         differentialInitialTorque: 10, differentialAcceleration: 40,
@@ -140,6 +142,7 @@ export default function TuningApp() {
         antiRollBarFront: 7, antiRollBarRear: 6,
         damperExpansionFront: 7, damperExpansionRear: 7,
         damperCompressionFront: 8, damperCompressionRear: 8,
+        camberFront: 2.5, camberRear: 2.0,
         toeInFront: 0.05, toeInRear: 0.15,
         downforceFront: 150, downforceRear: 200,
         brakeBalance: -2,
@@ -151,6 +154,7 @@ export default function TuningApp() {
         antiRollBarFront: 5, antiRollBarRear: 5,
         damperExpansionFront: 5, damperExpansionRear: 5,
         damperCompressionFront: 5, damperCompressionRear: 5,
+        camberFront: 2.0, camberRear: 1.5,
         toeInFront: 0.00, toeInRear: 0.15,
         downforceFront: 120, downforceRear: 150,
         brakeBalance: 0,
@@ -309,7 +313,7 @@ export default function TuningApp() {
             <div className="space-y-2">
               <Select value={selectedCircuit?.id} onValueChange={(id) => setSelectedCircuit(ALL_CIRCUITS.find(c => c.id === id) || null)}>
                 <SelectTrigger><SelectValue placeholder="Circuit" /></SelectTrigger>
-                <SelectContent>{currentCircuits.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <SelectContent className="max-h-80">{currentCircuits.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
               {selectedCircuit?.layouts && (
                 <Select value={selectedLayoutId} onValueChange={setSelectedLayoutId}>
@@ -359,7 +363,7 @@ export default function TuningApp() {
               {/* Suspension Tab */}
               <TabsContent value="suspension">
                 <Card className="p-6 bg-card border-border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                     {/* Ride Height */}
                     <div className="space-y-4">
                       <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Ride Height (F/R)</label></div>
@@ -388,7 +392,21 @@ export default function TuningApp() {
                         </div>
                       </div>
                     </div>
-                    {/* Toe Angles */}
+                    {/* Camber Angle */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Camber Angle (F/R)</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.camberFront?.toFixed(1)}°</span>
+                          <Slider value={[tuningSetup.camberFront || 2.0]} onValueChange={([v]) => updateTuning('camberFront', v)} min={0.0} max={10.0} step={0.1} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.camberRear?.toFixed(1)}°</span>
+                          <Slider value={[tuningSetup.camberRear || 1.5]} onValueChange={([v]) => updateTuning('camberRear', v)} min={0.0} max={10.0} step={0.1} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Toe Angle */}
                     <div className="space-y-4">
                       <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Toe Angle (F/R)</label></div>
                       <div className="grid grid-cols-2 gap-4">
@@ -402,17 +420,31 @@ export default function TuningApp() {
                         </div>
                       </div>
                     </div>
-                    {/* Dampers */}
+                    {/* Dampers Expansion */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Dampers (Exp/Comp)</label></div>
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Damper Expansion (F/R)</label></div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">Exp: {tuningSetup.damperExpansionFront} / {tuningSetup.damperExpansionRear}</span>
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperExpansionFront}</span>
                           <Slider value={[tuningSetup.damperExpansionFront || 5]} onValueChange={([v]) => updateTuning('damperExpansionFront', v)} min={1} max={10} step={1} />
                         </div>
                         <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">Comp: {tuningSetup.damperCompressionFront} / {tuningSetup.damperCompressionRear}</span>
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperExpansionRear}</span>
+                          <Slider value={[tuningSetup.damperExpansionRear || 5]} onValueChange={([v]) => updateTuning('damperExpansionRear', v)} min={1} max={10} step={1} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Dampers Compression */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Damper Compression (F/R)</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperCompressionFront}</span>
                           <Slider value={[tuningSetup.damperCompressionFront || 5]} onValueChange={([v]) => updateTuning('damperCompressionFront', v)} min={1} max={10} step={1} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperCompressionRear}</span>
+                          <Slider value={[tuningSetup.damperCompressionRear || 5]} onValueChange={([v]) => updateTuning('damperCompressionRear', v)} min={1} max={10} step={1} />
                         </div>
                       </div>
                     </div>
@@ -423,28 +455,33 @@ export default function TuningApp() {
               {/* Aero & Tires */}
               <TabsContent value="aerodynamics">
                 <Card className="p-6 bg-card border-border">
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-6">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Aerodynamics (lbs)</label>
                       <div className="space-y-4">
-                        <label className="text-xs font-bold uppercase text-muted-foreground">Tire Compound</label>
-                        <Select value={Object.keys(TIRE_GRIP_COEFFICIENTS).find(k => TIRE_GRIP_COEFFICIENTS[k as keyof typeof TIRE_GRIP_COEFFICIENTS] === tuningSetup.tireGripCoefficient) || 'racing-hard'} onValueChange={v => updateTuning('tireGripCoefficient', TIRE_GRIP_COEFFICIENTS[v as keyof typeof TIRE_GRIP_COEFFICIENTS])}>
-                          <SelectTrigger><SelectValue placeholder="Select Tire" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="comfort-soft">Comfort: Soft</SelectItem>
-                            <SelectItem value="sports-soft">Sports: Soft</SelectItem>
-                            <SelectItem value="racing-hard">Racing: Hard</SelectItem>
-                            <SelectItem value="racing-soft">Racing: Soft</SelectItem>
-                            <SelectItem value="racing-slick">Racing: Slick</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-4">
-                        <label className="text-xs font-bold uppercase text-muted-foreground">Downforce (F/R)</label>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[10px] mono-num text-primary"><span>Front</span><span>{tuningSetup.downforceFront} lbs</span></div>
                           <Slider value={[tuningSetup.downforceFront || 100]} onValueChange={([v]) => updateTuning('downforceFront', v)} min={0} max={500} step={5} />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[10px] mono-num text-primary"><span>Rear</span><span>{tuningSetup.downforceRear} lbs</span></div>
                           <Slider value={[tuningSetup.downforceRear || 150]} onValueChange={([v]) => updateTuning('downforceRear', v)} min={0} max={500} step={5} />
                         </div>
                       </div>
+                    </div>
+                    <div className="space-y-6">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Tire Compound</label>
+                      <Select value={Object.keys(TIRE_GRIP_COEFFICIENTS).find(k => TIRE_GRIP_COEFFICIENTS[k as keyof typeof TIRE_GRIP_COEFFICIENTS] === tuningSetup.tireGripCoefficient) || 'racing-hard'} onValueChange={v => updateTuning('tireGripCoefficient', TIRE_GRIP_COEFFICIENTS[v as keyof typeof TIRE_GRIP_COEFFICIENTS])}>
+                        <SelectTrigger><SelectValue placeholder="Select Tire" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="comfort-soft">Comfort: Soft</SelectItem>
+                          <SelectItem value="sports-soft">Sports: Soft</SelectItem>
+                          <SelectItem value="racing-hard">Racing: Hard</SelectItem>
+                          <SelectItem value="racing-soft">Racing: Soft</SelectItem>
+                          <SelectItem value="racing-slick">Racing: Slick</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] mono-num text-primary">Grip Multiplier: {tuningSetup.tireGripCoefficient?.toFixed(2)}</p>
                     </div>
                   </div>
                 </Card>

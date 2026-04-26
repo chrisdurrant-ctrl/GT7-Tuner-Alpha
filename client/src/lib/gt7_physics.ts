@@ -94,11 +94,17 @@ const DRAG_COEFFICIENT = 0.3; // Average for sports cars
 const FRONTAL_AREA = 2.2; // m² Average
 
 // Tire grip physics
-const TIRE_GRIP_COEFFICIENTS = {
-  comfort: 0.85,
-  sports: 0.95,
-  racing: 1.1,
-  slick: 1.2,
+export const TIRE_GRIP_COEFFICIENTS = {
+  'comfort-hard': 0.75,
+  'comfort-medium': 0.80,
+  'comfort-soft': 0.85,
+  'sports-hard': 0.90,
+  'sports-medium': 0.95,
+  'sports-soft': 1.00,
+  'racing-hard': 1.10,
+  'racing-medium': 1.20,
+  'racing-soft': 1.30,
+  'racing-slick': 1.40,
 };
 
 // Brake system multipliers

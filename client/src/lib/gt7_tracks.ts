@@ -8,6 +8,15 @@ import type { TuningSetup } from './gt7_physics';
 export type TrackType = 'street' | 'oval' | 'technical' | 'mixed' | 'rally' | 'real';
 export type TrackDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
+export interface TrackLayout {
+  id: string;
+  name: string;
+  length: number;
+  corners: number;
+  type?: TrackType;
+  difficulty?: TrackDifficulty;
+}
+
 export interface TrackProfile {
   id: string;
   name: string;
@@ -19,6 +28,7 @@ export interface TrackProfile {
   straights: number;
   elevation: number; // meters
   characteristics: string[];
+  layouts?: TrackLayout[];
   tuningPresets: {
     aggressive: Partial<TuningSetup>;
     balanced: Partial<TuningSetup>;
@@ -106,6 +116,10 @@ export const GT7_TRACKS: TrackProfile[] = [
     straights: 4,
     elevation: 40,
     characteristics: ['figure-eight', 'technical', 'high-speed corners'],
+    layouts: [
+      { id: 'suzuka-full', name: 'Full Course', length: 5.80, corners: 18 },
+      { id: 'suzuka-east', name: 'East Course', length: 2.24, corners: 9 }
+    ],
     tuningPresets: {
       aggressive: { ...DEFAULT_SUSPENSION.aggressive, downforceFront: 200, downforceRear: 280, antiRollBarFront: 8, antiRollBarRear: 8, camberFront: 3.0, camberRear: 2.5 },
       balanced: { ...DEFAULT_SUSPENSION.balanced, downforceFront: 160, downforceRear: 220, antiRollBarFront: 6, antiRollBarRear: 6, camberFront: 2.3, camberRear: 1.8 },
@@ -196,6 +210,10 @@ export const GT7_TRACKS: TrackProfile[] = [
     straights: 4,
     elevation: 10,
     characteristics: ['very high speed', 'heavy braking', 'curb riding'],
+    layouts: [
+      { id: 'monza-full', name: 'Full Course', length: 5.79, corners: 11 },
+      { id: 'monza-no-chicane', name: 'No Chicane', length: 5.75, corners: 8 }
+    ],
     tuningPresets: {
       aggressive: { ...DEFAULT_SUSPENSION.aggressive, rideHeightFront: 75, rideHeightRear: 80, downforceFront: 60, downforceRear: 100, antiRollBarFront: 5, antiRollBarRear: 4, camberFront: 1.2, camberRear: 0.8 },
       balanced: { ...DEFAULT_SUSPENSION.balanced, rideHeightFront: 95, rideHeightRear: 100, downforceFront: 90, downforceRear: 130, antiRollBarFront: 6, antiRollBarRear: 5, camberFront: 1.8, camberRear: 1.3 },
@@ -214,6 +232,10 @@ export const GT7_TRACKS: TrackProfile[] = [
     straights: 2,
     elevation: 35,
     characteristics: ['cambered corners', 'elevation', 'narrow'],
+    layouts: [
+      { id: 'brands-hatch-gp', name: 'Grand Prix Circuit', length: 3.91, corners: 9 },
+      { id: 'brands-hatch-indy', name: 'Indy Circuit', length: 1.94, corners: 6 }
+    ],
     tuningPresets: {
       aggressive: { ...DEFAULT_SUSPENSION.aggressive, downforceFront: 190, downforceRear: 260, antiRollBarFront: 8, antiRollBarRear: 7, camberFront: 2.8, camberRear: 2.3 },
       balanced: { ...DEFAULT_SUSPENSION.balanced, downforceFront: 160, downforceRear: 210, antiRollBarFront: 6, antiRollBarRear: 5, camberFront: 2.2, camberRear: 1.7 },

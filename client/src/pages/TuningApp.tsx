@@ -80,6 +80,9 @@ export default function TuningApp() {
     tireGripCoefficient: 1.1,
   });
 
+  const [hasFrontSplitter, setHasFrontSplitter] = useState(false);
+  const [hasRearWing, setHasRearWing] = useState(false);
+
   const [customBhp, setCustomBhp] = useState<number | null>(null);
   const [customWeight, setCustomWeight] = useState<number | null>(null);
   const [tuningMode, setTuningMode] = useState<'balanced' | 'acceleration' | 'cornering' | 'braking' | 'track'>('balanced');
@@ -504,15 +507,53 @@ export default function TuningApp() {
                 <Card className="p-6 bg-card border-border">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="space-y-6">
-                      <label className="text-xs font-bold uppercase text-muted-foreground">Aerodynamics (lbs)</label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-bold uppercase text-muted-foreground">Aerodynamics (lbs)</label>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant={hasFrontSplitter ? "default" : "outline"} 
+                            size="sm" 
+                            className="h-6 text-[9px] uppercase px-2"
+                            onClick={() => setHasFrontSplitter(!hasFrontSplitter)}
+                          >
+                            Front Splitter
+                          </Button>
+                          <Button 
+                            variant={hasRearWing ? "default" : "outline"} 
+                            size="sm" 
+                            className="h-6 text-[9px] uppercase px-2"
+                            onClick={() => setHasRearWing(!hasRearWing)}
+                          >
+                            Rear Wing
+                          </Button>
+                        </div>
+                      </div>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] mono-num text-primary"><span>Front</span><span>{tuningSetup.downforceFront} lbs</span></div>
-                          <Slider value={[tuningSetup.downforceFront || 100]} onValueChange={([v]) => updateTuning('downforceFront', v)} min={0} max={500} step={5} />
+                          <div className="flex justify-between text-[10px] mono-num text-primary">
+                            <span>Front {hasFrontSplitter && <span className="text-[8px] text-muted-foreground ml-1">(Splitter Active)</span>}</span>
+                            <span>{tuningSetup.downforceFront} lbs</span>
+                          </div>
+                          <Slider 
+                            value={[tuningSetup.downforceFront || 100]} 
+                            onValueChange={([v]) => updateTuning('downforceFront', v)} 
+                            min={0} 
+                            max={hasFrontSplitter ? 800 : 500} 
+                            step={5} 
+                          />
                         </div>
                         <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] mono-num text-primary"><span>Rear</span><span>{tuningSetup.downforceRear} lbs</span></div>
-                          <Slider value={[tuningSetup.downforceRear || 150]} onValueChange={([v]) => updateTuning('downforceRear', v)} min={0} max={500} step={5} />
+                          <div className="flex justify-between text-[10px] mono-num text-primary">
+                            <span>Rear {hasRearWing && <span className="text-[8px] text-muted-foreground ml-1">(Custom Wing Active)</span>}</span>
+                            <span>{tuningSetup.downforceRear} lbs</span>
+                          </div>
+                          <Slider 
+                            value={[tuningSetup.downforceRear || 150]} 
+                            onValueChange={([v]) => updateTuning('downforceRear', v)} 
+                            min={0} 
+                            max={hasRearWing ? 1200 : 500} 
+                            step={5} 
+                          />
                         </div>
                       </div>
                     </div>

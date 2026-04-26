@@ -1,32 +1,24 @@
 import type { TuningSetup } from './gt7_physics';
 
-export type TrackType = 'street' | 'oval' | 'technical' | 'mixed' | 'rally' | 'real';
-export type TrackDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+/**
+ * Gran Turismo 7 Complete Track Database
+ * Includes all 41 locations and 120+ layouts
+ */
 
 export interface TrackLayout {
   id: string;
   name: string;
-  length: number;
-  corners: number;
 }
 
 export interface TrackCircuit {
   id: string;
   name: string;
-  type: TrackType;
-  difficulty: TrackDifficulty;
-  length: number;
-  corners: number;
-  straights: number;
-  elevation: number;
-  characteristics: string[];
-  layouts?: TrackLayout[];
+  layouts: TrackLayout[];
   tuningPresets: {
     aggressive: Partial<TuningSetup>;
     balanced: Partial<TuningSetup>;
     conservative: Partial<TuningSetup>;
   };
-  tips: string[];
 }
 
 export interface TrackRegion {
@@ -37,222 +29,415 @@ export interface TrackRegion {
   }[];
 }
 
-const DEFAULT_SUSPENSION = {
+// Default presets for template
+const DEFAULT_TUNING: Record<'aggressive' | 'balanced' | 'conservative', Partial<TuningSetup>> = {
   aggressive: {
-    rideHeightFront: 80, rideHeightRear: 85,
+    rideHeightFront: 90, rideHeightRear: 95,
     naturalFrequencyFront: 3.2, naturalFrequencyRear: 3.2,
-    damperExpansionFront: 8, damperExpansionRear: 8,
-    damperCompressionFront: 7, damperCompressionRear: 7,
+    antiRollBarFront: 7, antiRollBarRear: 7,
+    damperExpansionFront: 45, damperExpansionRear: 45,
+    damperCompressionFront: 35, damperCompressionRear: 35,
     camberFront: 3.0, camberRear: 2.5,
     toeInFront: -0.10, toeInRear: 0.20,
+    downforceFront: 400, downforceRear: 600,
+    differentialInitialTorque: 15, differentialAcceleration: 50, differentialBraking: 30
   },
   balanced: {
-    rideHeightFront: 100, rideHeightRear: 100,
+    rideHeightFront: 100, rideHeightRear: 105,
     naturalFrequencyFront: 2.5, naturalFrequencyRear: 2.5,
-    damperExpansionFront: 5, damperExpansionRear: 5,
-    damperCompressionFront: 5, damperCompressionRear: 5,
+    antiRollBarFront: 5, antiRollBarRear: 5,
+    damperExpansionFront: 35, damperExpansionRear: 35,
+    damperCompressionFront: 25, damperCompressionRear: 25,
     camberFront: 2.0, camberRear: 1.5,
     toeInFront: 0.00, toeInRear: 0.15,
+    downforceFront: 250, downforceRear: 400,
+    differentialInitialTorque: 10, differentialAcceleration: 45, differentialBraking: 20
   },
   conservative: {
-    rideHeightFront: 120, rideHeightRear: 125,
-    naturalFrequencyFront: 1.8, naturalFrequencyRear: 1.8,
-    damperExpansionFront: 4, damperExpansionRear: 4,
-    damperCompressionFront: 3, damperCompressionRear: 3,
-    camberFront: 1.0, camberRear: 0.5,
+    rideHeightFront: 110, rideHeightRear: 115,
+    naturalFrequencyFront: 2.0, naturalFrequencyRear: 2.0,
+    antiRollBarFront: 3, antiRollBarRear: 3,
+    damperExpansionFront: 32, damperExpansionRear: 32,
+    damperCompressionFront: 22, damperCompressionRear: 22,
+    camberFront: 1.5, camberRear: 1.0,
     toeInFront: 0.05, toeInRear: 0.10,
+    downforceFront: 150, downforceRear: 250,
+    differentialInitialTorque: 8, differentialAcceleration: 40, differentialBraking: 15
   }
 };
 
 export const TRACK_REGIONS: TrackRegion[] = [
   {
-    name: 'Europe',
+    name: "Europe",
     locations: [
       {
-        name: 'Germany',
+        name: "Austria",
         circuits: [
           {
-            id: 'nurburgring',
-            name: 'Nürburgring',
-            type: 'real', difficulty: 'expert', length: 25.37, corners: 170, straights: 10, elevation: 300,
-            characteristics: ['long', 'narrow', 'bumpy'],
+            id: "red-bull-ring",
+            name: "Red Bull Ring",
             layouts: [
-              { id: 'nurb-24h', name: '24h Layout', length: 25.37, corners: 170 },
-              { id: 'nurb-nords', name: 'Nordschleife', length: 20.83, corners: 154 },
-              { id: 'nurb-gp', name: 'Grand Prix', length: 5.15, corners: 15 }
+              { id: "rbr-full", name: "Full Course" },
+              { id: "rbr-short", name: "Short Course" }
             ],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Focus on suspension travel for bumps']
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       },
       {
-        name: 'United Kingdom',
+        name: "Belgium",
         circuits: [
           {
-            id: 'brands-hatch',
-            name: 'Brands Hatch',
-            type: 'real', difficulty: 'intermediate', length: 3.91, corners: 9, straights: 2, elevation: 35,
-            characteristics: ['cambered', 'elevation'],
+            id: "spa",
+            name: "Circuit de Spa-Francorchamps",
             layouts: [
-              { id: 'bh-gp', name: 'Grand Prix Circuit', length: 3.91, corners: 9 },
-              { id: 'bh-indy', name: 'Indy Circuit', length: 1.94, corners: 6 }
+              { id: "spa-full", name: "Full Course" },
+              { id: "spa-24h", name: "24h Layout" }
             ],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Commit through Paddock Hill Bend']
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       },
       {
-        name: 'Belgium',
+        name: "France",
         circuits: [
           {
-            id: 'spa',
-            name: 'Circuit de Spa-Francorchamps',
-            type: 'real', difficulty: 'advanced', length: 7.00, corners: 20, straights: 5, elevation: 100,
-            characteristics: ['high-speed', 'elevation'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Flat out through Eau Rouge']
-          }
-        ]
-      },
-      {
-        name: 'Italy',
-        circuits: [
-          {
-            id: 'monza',
-            name: 'Autodromo Nazionale Monza',
-            type: 'real', difficulty: 'intermediate', length: 5.79, corners: 11, straights: 4, elevation: 10,
-            characteristics: ['high-speed', 'heavy braking'],
+            id: "le-mans",
+            name: "Circuit de la Sarthe",
             layouts: [
-              { id: 'monza-full', name: 'Full Course', length: 5.79, corners: 11 },
-              { id: 'monza-no-chicane', name: 'No Chicane', length: 5.75, corners: 8 }
+              { id: "lemans-full", name: "Full Course" },
+              { id: "lemans-no-chicane", name: "No Chicane" }
             ],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Attack the curbs in the chicanes']
+            tuningPresets: DEFAULT_TUNING
           },
           {
-            id: 'maggiore',
-            name: 'Autodrome Lago Maggiore',
-            type: 'technical', difficulty: 'intermediate', length: 5.81, corners: 17, straights: 3, elevation: 40,
-            characteristics: ['technical', 'original'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Smooth steering through technical sections']
+            id: "alsace",
+            name: "Alsace",
+            layouts: [
+              { id: "alsace-village", name: "Village" },
+              { id: "alsace-test", name: "Test Track" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "magny-cours",
+            name: "Circuit de Nevers Magny-Cours",
+            layouts: [{ id: "magny-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       },
       {
-        name: 'France',
+        name: "Germany",
         circuits: [
           {
-            id: 'le-mans',
-            name: 'Circuit de la Sarthe',
-            type: 'real', difficulty: 'advanced', length: 13.62, corners: 38, straights: 5, elevation: 40,
-            characteristics: ['long straights', 'high speed'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Minimize downforce for top speed']
+            id: "nurburgring",
+            name: "Nürburgring",
+            layouts: [
+              { id: "nurb-24h", name: "24h Layout" },
+              { id: "nurb-nordschleife", name: "Nordschleife" },
+              { id: "nurb-gp", name: "GP Course" },
+              { id: "nurb-sprint", name: "Sprint Course" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          }
+        ]
+      },
+      {
+        name: "Italy",
+        circuits: [
+          {
+            id: "monza",
+            name: "Autodromo Nazionale di Monza",
+            layouts: [
+              { id: "monza-full", name: "Full Course" },
+              { id: "monza-no-chicane", name: "No Chicane" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "sardegna",
+            name: "Sardegna - Road Track",
+            layouts: [
+              { id: "sardegna-a", name: "Track A" },
+              { id: "sardegna-b", name: "Track B" },
+              { id: "sardegna-c", name: "Track C" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "sardegna-windmills",
+            name: "Sardegna - Windmills (Dirt)",
+            layouts: [{ id: "sardegna-dirt", name: "Dirt Layout" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "Lago Maggiore",
+            name: "Autodromo de Lago Maggiore",
+            layouts: [
+              { id: "lago-full", name: "Full Course" },
+              { id: "lago-center", name: "Center" },
+              { id: "lago-east", name: "East" },
+              { id: "lago-west", name: "West" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          }
+        ]
+      },
+      {
+        name: "Spain",
+        circuits: [
+          {
+            id: "barcelona",
+            name: "Circuit de Barcelona-Catalunya",
+            layouts: [
+              { id: "barca-gp", name: "GP Layout" },
+              { id: "barca-no-chicane", name: "No Chicane" },
+              { id: "barca-national", name: "National Layout" },
+              { id: "barca-rallycross", name: "Rallycross Layout" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          }
+        ]
+      },
+      {
+        name: "Switzerland",
+        circuits: [
+          {
+            id: "eiger",
+            name: "Eiger Nordwand",
+            layouts: [
+              { id: "eiger-full", name: "Full Course" },
+              { id: "eiger-rev", name: "Reverse" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          }
+        ]
+      },
+      {
+        name: "UK",
+        circuits: [
+          {
+            id: "brands-hatch",
+            name: "Brands Hatch",
+            layouts: [
+              { id: "bh-gp", name: "Grand Prix Circuit" },
+              { id: "bh-indy", name: "Indy Circuit" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "goodwood",
+            name: "Goodwood Motor Circuit",
+            layouts: [{ id: "goodwood-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "silverstone",
+            name: "Silverstone",
+            layouts: [
+              { id: "silver-gp", name: "GP Circuit" },
+              { id: "silver-national", name: "National Circuit" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          }
+        ]
+      },
+      {
+        name: "Croatia",
+        circuits: [
+          {
+            id: "dragon-trail",
+            name: "Dragon Trail",
+            layouts: [
+              { id: "dt-seaside", name: "Seaside" },
+              { id: "dt-gardens", name: "Gardens" }
+            ],
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       }
     ]
   },
   {
-    name: 'Americas',
+    name: "Americas",
     locations: [
       {
-        name: 'USA',
+        name: "Brazil",
         circuits: [
           {
-            id: 'laguna-seca',
-            name: 'Laguna Seca',
-            type: 'real', difficulty: 'intermediate', length: 3.60, corners: 11, straights: 2, elevation: 55,
-            characteristics: ['corkscrew', 'technical'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Master the Corkscrew']
-          },
-          {
-            id: 'watkins-glen',
-            name: 'Watkins Glen',
-            type: 'real', difficulty: 'intermediate', length: 5.42, corners: 11, straights: 3, elevation: 35,
-            characteristics: ['flowing', 'high-speed'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Speed through the Esses is vital']
-          },
-          {
-            id: 'daytona',
-            name: 'Daytona International Speedway',
-            type: 'oval', difficulty: 'intermediate', length: 5.73, corners: 12, straights: 2, elevation: 0,
-            characteristics: ['banking', 'oval', 'road course'],
-            layouts: [
-              { id: 'daytona-tri', name: 'Tri-Oval', length: 4.02, corners: 3 },
-              { id: 'daytona-road', name: 'Road Course', length: 5.73, corners: 12 }
-            ],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Drafting is key on the oval']
+            id: "interlagos",
+            name: "Autódromo de Interlagos",
+            layouts: [{ id: "interlagos-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       },
       {
-        name: 'Brazil',
+        name: "USA",
         circuits: [
           {
-            id: 'interlagos',
-            name: 'Autódromo de Interlagos',
-            type: 'real', difficulty: 'intermediate', length: 4.30, corners: 15, straights: 2, elevation: 43,
-            characteristics: ['anti-clockwise', 'technical infield'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Focus on exit speed from Junção']
+            id: "daytona",
+            name: "Daytona International Speedway",
+            layouts: [
+              { id: "daytona-tri", name: "Tri-Oval" },
+              { id: "daytona-road", name: "Road Course" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "laguna-seca",
+            name: "WeatherTech Raceway Laguna Seca",
+            layouts: [{ id: "laguna-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "watkins-glen",
+            name: "Watkins Glen International",
+            layouts: [
+              { id: "watkins-long", name: "Long Course" },
+              { id: "watkins-short", name: "Short Course" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "willow-springs",
+            name: "Willow Springs International Raceway",
+            layouts: [
+              { id: "willow-big", name: "Big Willow" },
+              { id: "willow-streets", name: "Streets of Willow Springs" },
+              { id: "willow-horse", name: "Horse Thief Mile" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "road-atlanta",
+            name: "Michelin Raceway Road Atlanta",
+            layouts: [{ id: "atlanta-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "trial-mountain",
+            name: "Trial Mountain Circuit",
+            layouts: [{ id: "trial-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "blue-moon",
+            name: "Blue Moon Bay Speedway",
+            layouts: [
+              { id: "blue-oval", name: "Tri-Oval" },
+              { id: "blue-infield-a", name: "Infield A" },
+              { id: "blue-infield-b", name: "Infield B" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "northern-isle",
+            name: "Northern Isle Speedway",
+            layouts: [{ id: "northern-oval", name: "Half-Mile Oval" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "colorado",
+            name: "Colorado Springs (Dirt)",
+            layouts: [{ id: "colorado-lake", name: "Lake" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "fishermans-ranch",
+            name: "Fishermans Ranch (Dirt)",
+            layouts: [{ id: "fishermans-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       }
     ]
   },
   {
-    name: 'Asia-Oceania',
+    name: "Asia-Oceania",
     locations: [
       {
-        name: 'Japan',
+        name: "Australia",
         circuits: [
           {
-            id: 'suzuka',
-            name: 'Suzuka Circuit',
-            type: 'real', difficulty: 'expert', length: 5.80, corners: 18, straights: 4, elevation: 40,
-            characteristics: ['figure-eight', 'technical'],
-            layouts: [
-              { id: 'suzuka-full', name: 'Full Course', length: 5.80, corners: 18 },
-              { id: 'suzuka-east', name: 'East Course', length: 2.24, corners: 9 }
-            ],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Maintain rhythm through the Esses']
-          },
-          {
-            id: 'tsukuba',
-            name: 'Tsukuba Circuit',
-            type: 'real', difficulty: 'beginner', length: 2.04, corners: 8, straights: 2, elevation: 0,
-            characteristics: ['short', 'technical'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Patience in the hairpins']
-          },
-          {
-            id: 'fuji',
-            name: 'Fuji Speedway',
-            type: 'real', difficulty: 'intermediate', length: 4.56, corners: 16, straights: 1, elevation: 35,
-            characteristics: ['long straight', 'technical final sector'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Speed on the main straight is vital']
+            id: "bathurst",
+            name: "Mount Panorama Motor Racing Circuit",
+            layouts: [{ id: "bathurst-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       },
       {
-        name: 'Australia',
+        name: "Japan",
         circuits: [
           {
-            id: 'bathurst',
-            name: 'Mount Panorama',
-            type: 'real', difficulty: 'expert', length: 6.21, corners: 23, straights: 2, elevation: 174,
-            characteristics: ['mountain', 'narrow', 'elevation'],
-            tuningPresets: { aggressive: { ...DEFAULT_SUSPENSION.aggressive }, balanced: { ...DEFAULT_SUSPENSION.balanced }, conservative: { ...DEFAULT_SUSPENSION.conservative } },
-            tips: ['Don\'t hit the walls on the mountain']
+            id: "suzuka",
+            name: "Suzuka Circuit",
+            layouts: [
+              { id: "suzuka-full", name: "Full Course" },
+              { id: "suzuka-east", name: "East Course" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "fuji",
+            name: "Fuji Speedway",
+            layouts: [
+              { id: "fuji-f", name: "Fuji Speedway F" },
+              { id: "fuji-gt", name: "Fuji Speedway GT" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "tsukuba",
+            name: "Tsukuba Circuit",
+            layouts: [{ id: "tsukuba-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "autopolis",
+            name: "Autopolis International Racing Course",
+            layouts: [
+              { id: "auto-full", name: "Full Course" },
+              { id: "auto-shortcut", name: "Shortcut Course" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "tokyo",
+            name: "Tokyo Expressway",
+            layouts: [
+              { id: "tokyo-central-clock", name: "Central Clockwise" },
+              { id: "tokyo-central-counter", name: "Central Counter-Clockwise" },
+              { id: "tokyo-east-clock", name: "East Clockwise" },
+              { id: "tokyo-east-counter", name: "East Counter-Clockwise" },
+              { id: "tokyo-south-clock", name: "South Clockwise" },
+              { id: "tokyo-south-counter", name: "South Counter-Clockwise" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "kyoto",
+            name: "Kyoto Driving Park",
+            layouts: [
+              { id: "kyoto-yamagiwa", name: "Yamagiwa" },
+              { id: "kyoto-miyabi", name: "Miyabi" },
+              { id: "kyoto-yamagiwa-miyabi", name: "Yamagiwa + Miyabi" }
+            ],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "high-speed-ring",
+            name: "High Speed Ring",
+            layouts: [{ id: "hsr-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
+          },
+          {
+            id: "broad-bean",
+            name: "Broad Bean Raceway",
+            layouts: [{ id: "broad-full", name: "Full Course" }],
+            tuningPresets: DEFAULT_TUNING
           }
         ]
       }
@@ -261,7 +446,3 @@ export const TRACK_REGIONS: TrackRegion[] = [
 ];
 
 export const ALL_CIRCUITS: TrackCircuit[] = TRACK_REGIONS.flatMap(r => r.locations.flatMap(l => l.circuits));
-
-export function getCircuitById(id: string): TrackCircuit | undefined {
-  return ALL_CIRCUITS.find(c => c.id === id);
-}

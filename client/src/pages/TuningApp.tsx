@@ -137,7 +137,7 @@ export default function TuningApp() {
         toeInFront: -0.05, toeInRear: 0.10,
         downforceFront: hasFrontSplitter ? 350 : 50,
         downforceRear: hasRearWing ? 550 : 75,
-        differentialInitialTorque: 15, differentialAcceleration: 55,
+        differentialInitialTorque: 15, differentialAcceleration: 55, differentialBraking: 35,
       },
       cornering: {
         rideHeightFront: rideHeightLimits.min, rideHeightRear: rideHeightLimits.min,
@@ -149,7 +149,7 @@ export default function TuningApp() {
         toeInFront: -0.15, toeInRear: 0.25,
         downforceFront: hasFrontSplitter ? 750 : 200,
         downforceRear: hasRearWing ? 1100 : 300,
-        differentialInitialTorque: 10, differentialAcceleration: 35,
+        differentialInitialTorque: 10, differentialAcceleration: 35, differentialBraking: 25,
       },
       braking: {
         rideHeightFront: rideHeightLimits.min + 20, rideHeightRear: rideHeightLimits.min + 30,
@@ -175,7 +175,7 @@ export default function TuningApp() {
         downforceFront: hasFrontSplitter ? 400 : 120,
         downforceRear: hasRearWing ? 650 : 150,
         brakeBalance: 0,
-        differentialInitialTorque: 10, differentialAcceleration: 45,
+        differentialInitialTorque: 10, differentialAcceleration: 45, differentialBraking: 20,
       },
       track: {},
     };

@@ -135,9 +135,9 @@ export default function TuningApp() {
         damperCompressionFront: 32, damperCompressionRear: 32,
         camberFront: 1.5, camberRear: 1.0,
         toeInFront: -0.05, toeInRear: 0.10,
-        downforceFront: hasFrontSplitter ? 150 : 50,
-        downforceRear: hasRearWing ? 250 : 75,
-        differentialInitialTorque: 15, differentialAcceleration: 80,
+        downforceFront: hasFrontSplitter ? 350 : 50,
+        downforceRear: hasRearWing ? 550 : 75,
+        differentialInitialTorque: 15, differentialAcceleration: 55,
       },
       cornering: {
         rideHeightFront: rideHeightLimits.min, rideHeightRear: rideHeightLimits.min,
@@ -147,9 +147,9 @@ export default function TuningApp() {
         damperCompressionFront: 38, damperCompressionRear: 38,
         camberFront: 3.5, camberRear: 3.0,
         toeInFront: -0.15, toeInRear: 0.25,
-        downforceFront: hasFrontSplitter ? 600 : 200,
-        downforceRear: hasRearWing ? 1000 : 300,
-        differentialInitialTorque: 10, differentialAcceleration: 40,
+        downforceFront: hasFrontSplitter ? 750 : 200,
+        downforceRear: hasRearWing ? 1100 : 300,
+        differentialInitialTorque: 10, differentialAcceleration: 35,
       },
       braking: {
         rideHeightFront: rideHeightLimits.min + 20, rideHeightRear: rideHeightLimits.min + 30,
@@ -159,10 +159,10 @@ export default function TuningApp() {
         damperCompressionFront: 35, damperCompressionRear: 35,
         camberFront: 2.5, camberRear: 2.0,
         toeInFront: 0.05, toeInRear: 0.15,
-        downforceFront: hasFrontSplitter ? 400 : 150,
-        downforceRear: hasRearWing ? 600 : 200,
+        downforceFront: hasFrontSplitter ? 500 : 150,
+        downforceRear: hasRearWing ? 800 : 200,
         brakeBalance: -2,
-        differentialInitialTorque: 20, differentialBraking: 70,
+        differentialInitialTorque: 20, differentialBraking: 55,
       },
       balanced: {
         rideHeightFront: rideHeightLimits.min + 20, rideHeightRear: rideHeightLimits.min + 20,
@@ -172,10 +172,10 @@ export default function TuningApp() {
         damperCompressionFront: 25, damperCompressionRear: 25,
         camberFront: 2.0, camberRear: 1.5,
         toeInFront: 0.00, toeInRear: 0.15,
-        downforceFront: hasFrontSplitter ? 300 : 120,
-        downforceRear: hasRearWing ? 450 : 150,
+        downforceFront: hasFrontSplitter ? 400 : 120,
+        downforceRear: hasRearWing ? 650 : 150,
         brakeBalance: 0,
-        differentialInitialTorque: 10, differentialAcceleration: 60,
+        differentialInitialTorque: 10, differentialAcceleration: 45,
       },
       track: {},
     };
@@ -587,7 +587,7 @@ export default function TuningApp() {
               {/* Drivetrain Tab */}
               <TabsContent value="drivetrain">
                 <Card className="p-6 bg-card border-border">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="space-y-4">
                       <label className="text-xs font-bold uppercase text-muted-foreground">Initial Torque</label>
                       <span className="block text-xs mono-num text-primary">{tuningSetup.differentialInitialTorque}</span>
@@ -596,7 +596,12 @@ export default function TuningApp() {
                     <div className="space-y-4">
                       <label className="text-xs font-bold uppercase text-muted-foreground">Acceleration Sensitivity</label>
                       <span className="block text-xs mono-num text-primary">{tuningSetup.differentialAcceleration}</span>
-                      <Slider value={[tuningSetup.differentialAcceleration || 60]} onValueChange={([v]) => updateTuning('differentialAcceleration', v)} min={5} max={60} step={1} />
+                      <Slider value={[tuningSetup.differentialAcceleration || 45]} onValueChange={([v]) => updateTuning('differentialAcceleration', v)} min={5} max={60} step={1} />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Braking Sensitivity</label>
+                      <span className="block text-xs mono-num text-primary">{tuningSetup.differentialBraking}</span>
+                      <Slider value={[tuningSetup.differentialBraking || 20]} onValueChange={([v]) => updateTuning('differentialBraking', v)} min={5} max={60} step={1} />
                     </div>
                   </div>
                 </Card>

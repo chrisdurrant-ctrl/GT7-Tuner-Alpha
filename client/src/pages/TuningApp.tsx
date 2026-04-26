@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { GT7_CARS, GT7Car } from '@/lib/gt7_cars';
-import { GT7_TRACKS, TrackProfile } from '@/lib/gt7_tracks';
+import { TRACK_REGIONS, ALL_CIRCUITS, TrackCircuit } from '@/lib/gt7_tracks';
 import { 
   TuningSetup, 
   PerformanceMetrics, 
   TIRE_GRIP_COEFFICIENTS,
+  BRAKE_SYSTEMS,
   calculateEffectivePower,
   calculateTotalWeight,
   calculate0to60Time,
@@ -30,58 +31,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
   Radar,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
-  PolarRadiusAxis
+  ResponsiveContainer
 } from 'recharts';
 
-/**
- * GT7 Tuning Simulator
- * Design: Dark Industrial / Motorsport HUD with real-time performance visualization
- * Features: Track-specific tuning profiles with automatic recommendations
- */
 export default function TuningApp() {
+  // --- STATE ---
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>(GT7_CARS[0]?.manufacturer || '');
   const [selectedModel, setSelectedModel] = useState<string>(GT7_CARS[0]?.model || '');
   const [selectedCar, setSelectedCar] = useState<GT7Car | null>(GT7_CARS[0] || null);
-  const [selectedTrack, setSelectedTrack] = useState<TrackProfile | null>(GT7_TRACKS[0] || null);
+  
+  // Hierarchical Track Selection
+  const [selectedRegion, setSelectedRegion] = useState<string>(TRACK_REGIONS[0].name);
+  const [selectedLocation, setSelectedLocation] = useState<string>(TRACK_REGIONS[0].locations[0].name);
+  const [selectedCircuit, setSelectedCircuit] = useState<TrackCircuit | null>(TRACK_REGIONS[0].locations[0].circuits[0]);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('');
 
-  // Update layout when track changes
-  useEffect(() => {
-    if (selectedTrack && selectedTrack.layouts && selectedTrack.layouts.length > 0) {
-      setSelectedLayoutId(selectedTrack.layouts[0].id);
-    } else {
-      setSelectedLayoutId('');
-    }
-  }, [selectedTrack]);
-
-  const activeLayout = useMemo(() => {
-    if (!selectedTrack || !selectedLayoutId) return null;
-    return selectedTrack.layouts?.find(l => l.id === selectedLayoutId) || null;
-  }, [selectedTrack, selectedLayoutId]);
-
-  // Get unique manufacturers
-  const manufacturers = useMemo(() => {
-    const unique = Array.from(new Set(GT7_CARS.map(car => car.manufacturer))).sort();
-    return unique;
-  }, []);
-
-  // Get models for selected manufacturer
-  const models = useMemo(() => {
-    return GT7_CARS.filter(car => car.manufacturer === selectedManufacturer).map(car => car.model).sort();
-  }, [selectedManufacturer]);
-
-  // Tuning state
   const [tuningSetup, setTuningSetup] = useState<Partial<TuningSetup>>({
     powerRestriction: 100,
     ballastKg: 0,
@@ -102,125 +70,110 @@ export default function TuningApp() {
     toeInRear: 0.2,
     downforceFront: 100,
     downforceRear: 150,
-    brakePowerMultiplier: 1.35,
-    brakeBalance: 55,
+    brakeSystemType: 'racing',
+    brakeBalance: 0,
     differentialInitialTorque: 10,
     differentialAcceleration: 60,
     differentialBraking: 50,
     tirePressureFront: 30,
     tirePressureRear: 30,
-    tireGripCoefficient: 1.1, // Racing: Hard default
+    tireGripCoefficient: 1.1,
   });
 
   const [customBhp, setCustomBhp] = useState<number | null>(null);
   const [customWeight, setCustomWeight] = useState<number | null>(null);
   const [tuningMode, setTuningMode] = useState<'balanced' | 'acceleration' | 'cornering' | 'braking' | 'track'>('balanced');
 
-  // Update tuning state
+  // --- EFFECTS & MEMOS ---
+  const manufacturers = useMemo(() => Array.from(new Set(GT7_CARS.map(car => car.manufacturer))).sort(), []);
+  const models = useMemo(() => GT7_CARS.filter(car => car.manufacturer === selectedManufacturer).map(car => car.model).sort(), [selectedManufacturer]);
+  
+  const currentRegion = useMemo(() => TRACK_REGIONS.find(r => r.name === selectedRegion), [selectedRegion]);
+  const currentLocations = useMemo(() => currentRegion?.locations || [], [currentRegion]);
+  const currentLocation = useMemo(() => currentLocations.find(l => l.name === selectedLocation), [currentLocations, selectedLocation]);
+  const currentCircuits = useMemo(() => currentLocation?.circuits || [], [currentLocation]);
+
+  useEffect(() => {
+    if (selectedCircuit?.layouts && selectedCircuit.layouts.length > 0) {
+      setSelectedLayoutId(selectedCircuit.layouts[0].id);
+    } else {
+      setSelectedLayoutId('');
+    }
+  }, [selectedCircuit]);
+
+  const activeLayoutName = useMemo(() => {
+    if (!selectedCircuit || !selectedLayoutId) return 'Full Course';
+    return selectedCircuit.layouts?.find(l => l.id === selectedLayoutId)?.name || 'Full Course';
+  }, [selectedCircuit, selectedLayoutId]);
+
+  // --- ACTIONS ---
   const updateTuning = (key: keyof TuningSetup, value: any) => {
     setTuningSetup(prev => ({ ...prev, [key]: value }));
   };
 
-  // Apply tuning presets
   const applyPreset = (mode: typeof tuningMode) => {
     setTuningMode(mode);
     const presets = {
       acceleration: {
-        powerRestriction: 100,
-        ballastKg: 0,
-        downforceFront: 50,
-        downforceRear: 75,
-        rideHeightFront: 90,
-        rideHeightRear: 95,
-        antiRollBarFront: 3,
-        antiRollBarRear: 3,
-        damperExpansionFront: 6,
-        damperExpansionRear: 6,
-        damperCompressionFront: 4,
-        damperCompressionRear: 4,
-        brakeBalance: 50,
-        differentialInitialTorque: 15,
-        differentialAcceleration: 80,
+        rideHeightFront: 90, rideHeightRear: 95,
+        naturalFrequencyFront: 2.8, naturalFrequencyRear: 2.8,
+        antiRollBarFront: 3, antiRollBarRear: 3,
+        damperExpansionFront: 6, damperExpansionRear: 6,
+        damperCompressionFront: 4, damperCompressionRear: 4,
+        toeInFront: -0.05, toeInRear: 0.10,
+        downforceFront: 50, downforceRear: 75,
+        differentialInitialTorque: 15, differentialAcceleration: 80,
       },
       cornering: {
-        powerRestriction: 90,
-        ballastKg: 50,
-        downforceFront: 200,
-        downforceRear: 300,
-        rideHeightFront: 80,
-        rideHeightRear: 80,
-        antiRollBarFront: 8,
-        antiRollBarRear: 8,
-        damperExpansionFront: 8,
-        damperExpansionRear: 8,
-        damperCompressionFront: 7,
-        damperCompressionRear: 7,
-        brakeBalance: 55,
-        differentialInitialTorque: 10,
-        differentialAcceleration: 40,
+        rideHeightFront: 80, rideHeightRear: 80,
+        naturalFrequencyFront: 3.5, naturalFrequencyRear: 3.5,
+        antiRollBarFront: 8, antiRollBarRear: 8,
+        damperExpansionFront: 8, damperExpansionRear: 8,
+        damperCompressionFront: 7, damperCompressionRear: 7,
+        toeInFront: -0.15, toeInRear: 0.25,
+        downforceFront: 200, downforceRear: 300,
+        differentialInitialTorque: 10, differentialAcceleration: 40,
       },
       braking: {
-        powerRestriction: 80,
-        ballastKg: 100,
-        downforceFront: 150,
-        downforceRear: 200,
-        rideHeightFront: 100,
-        rideHeightRear: 110,
-        antiRollBarFront: 7,
-        antiRollBarRear: 6,
-        damperExpansionFront: 7,
-        damperExpansionRear: 7,
-        damperCompressionFront: 8,
-        damperCompressionRear: 8,
-        brakeBalance: 60,
-        differentialInitialTorque: 20,
-        differentialBraking: 70,
+        rideHeightFront: 100, rideHeightRear: 110,
+        naturalFrequencyFront: 3.0, naturalFrequencyRear: 3.2,
+        antiRollBarFront: 7, antiRollBarRear: 6,
+        damperExpansionFront: 7, damperExpansionRear: 7,
+        damperCompressionFront: 8, damperCompressionRear: 8,
+        toeInFront: 0.05, toeInRear: 0.15,
+        downforceFront: 150, downforceRear: 200,
+        brakeBalance: -2,
+        differentialInitialTorque: 20, differentialBraking: 70,
       },
       balanced: {
-        powerRestriction: 100,
-        ballastKg: 20,
-        downforceFront: 120,
-        downforceRear: 150,
-        rideHeightFront: 100,
-        rideHeightRear: 100,
-        antiRollBarFront: 5,
-        antiRollBarRear: 5,
-        damperExpansionFront: 5,
-        damperExpansionRear: 5,
-        damperCompressionFront: 5,
-        damperCompressionRear: 5,
-        brakeBalance: 55,
-        differentialInitialTorque: 10,
-        differentialAcceleration: 60,
+        rideHeightFront: 100, rideHeightRear: 100,
+        naturalFrequencyFront: 2.5, naturalFrequencyRear: 2.5,
+        antiRollBarFront: 5, antiRollBarRear: 5,
+        damperExpansionFront: 5, damperExpansionRear: 5,
+        damperCompressionFront: 5, damperCompressionRear: 5,
+        toeInFront: 0.00, toeInRear: 0.15,
+        downforceFront: 120, downforceRear: 150,
+        brakeBalance: 0,
+        differentialInitialTorque: 10, differentialAcceleration: 60,
       },
       track: {},
     };
 
-    setTuningSetup((prev) => ({
-      ...prev,
-      ...presets[mode as keyof typeof presets],
-    }));
+    setTuningSetup(prev => ({ ...prev, ...presets[mode as keyof typeof presets] }));
   };
 
   const applyTrackPreset = (preset: 'aggressive' | 'balanced' | 'conservative') => {
-    if (selectedTrack) {
+    if (selectedCircuit) {
       setTuningMode('track');
-      setTuningSetup((prev) => ({
-        ...prev,
-        ...selectedTrack.tuningPresets[preset],
-      }));
+      setTuningSetup(prev => ({ ...prev, ...selectedCircuit.tuningPresets[preset] }));
     }
   };
 
-  // Calculate performance metrics
+  // --- CALCULATIONS ---
   const metrics = useMemo<PerformanceMetrics | null>(() => {
     if (!selectedCar) return null;
-
-    const basePower = customBhp || selectedCar.power_bhp;
-    const baseWeight = customWeight || selectedCar.weight_kg;
-
-    const power = calculateEffectivePower(basePower, tuningSetup.powerRestriction || 100);
-    const weight = calculateTotalWeight(baseWeight, tuningSetup.ballastKg || 0);
+    const power = calculateEffectivePower(customBhp || selectedCar.power_bhp, tuningSetup.powerRestriction || 100);
+    const weight = calculateTotalWeight(customWeight || selectedCar.weight_kg, tuningSetup.ballastKg || 0);
     const tireGrip = tuningSetup.tireGripCoefficient || 1.1;
 
     const accel0to60 = calculate0to60Time(power, weight, tireGrip, tuningSetup.differentialAcceleration || 60);
@@ -228,24 +181,10 @@ export default function TuningApp() {
     const accel0to200 = calculate0to200Time(power, weight, tireGrip, tuningSetup.differentialAcceleration || 60);
 
     const brake100to0 = calculateBrakingDistance100to0(
-      weight,
-      tuningSetup.brakePowerMultiplier || 1.35,
-      tuningSetup.brakeBalance || 55,
-      tireGrip,
-      tuningSetup.differentialBraking || 50
-    );
-
-    const brake200to0 = calculateBrakingDistance200to0(
-      weight,
-      tuningSetup.brakePowerMultiplier || 1.35,
-      tuningSetup.brakeBalance || 55,
-      tireGrip,
-      tuningSetup.differentialBraking || 50
-    );
-
-    const brakingDecel = calculateBrakingDeceleration(
-      tuningSetup.brakePowerMultiplier || 1.35,
-      tireGrip,
+      weight, 
+      tuningSetup.brakeSystemType || 'racing', 
+      tuningSetup.brakeBalance || 0, 
+      tireGrip, 
       tuningSetup.differentialBraking || 50
     );
 
@@ -261,15 +200,10 @@ export default function TuningApp() {
     );
 
     const corneringSpeed = calculateCorneringSpeed(lateralG);
-    const topSpeed = calculateTopSpeed(
-      power,
-      weight,
-      tuningSetup.downforceFront || 100,
-      tuningSetup.downforceRear || 150
-    );
+    const topSpeed = calculateTopSpeed(power, weight, tuningSetup.downforceFront || 100, tuningSetup.downforceRear || 150);
 
     const accelRating = calculateAccelerationRating(accel0to60, accel0to100, accel0to200);
-    const brakingRating = calculateBrakingRating(brake100to0, brake200to0);
+    const brakingRating = calculateBrakingRating(brake100to0, brake100to0 * 2.5);
     const corneringRating = calculateCorneringRating(lateralG, corneringSpeed);
     const topSpeedRating = calculateTopSpeedRating(topSpeed);
 
@@ -279,8 +213,8 @@ export default function TuningApp() {
       acceleration0to200: accel0to200,
       accelerationRating: accelRating,
       brakingDistance100to0: brake100to0,
-      brakingDistance200to0: brake200to0,
-      brakingDeceleration: brakingDecel,
+      brakingDistance200to0: brake100to0 * 2.5,
+      brakingDeceleration: 1.2,
       brakingRating: brakingRating,
       lateralAcceleration: lateralG,
       corneringSpeed: corneringSpeed,
@@ -292,28 +226,20 @@ export default function TuningApp() {
     };
   }, [selectedCar, tuningSetup, customBhp, customWeight]);
 
-  const radarData = metrics
-    ? [
-        { name: 'Accel', value: metrics.accelerationRating },
-        { name: 'Braking', value: metrics.brakingRating },
-        { name: 'Cornering', value: metrics.corneringRating },
-        { name: 'Top Speed', value: metrics.topSpeedRating },
-      ]
-    : [];
+  const radarData = metrics ? [
+    { name: 'Accel', value: metrics.accelerationRating },
+    { name: 'Braking', value: metrics.brakingRating },
+    { name: 'Cornering', value: metrics.corneringRating },
+    { name: 'Top Speed', value: metrics.topSpeedRating },
+  ] : [];
 
-  const performanceData = metrics
-    ? [
-        { label: '0-60 mph', value: metrics.acceleration0to60.toFixed(2) + 's' },
-        { label: '0-100 mph', value: metrics.acceleration0to100.toFixed(2) + 's' },
-        { label: '0-200 km/h', value: metrics.acceleration0to200.toFixed(2) + 's' },
-        { label: 'Brake 100→0', value: metrics.brakingDistance100to0.toFixed(1) + 'm' },
-        { label: 'Brake 200→0', value: metrics.brakingDistance200to0.toFixed(1) + 'm' },
-        { label: 'Lateral G', value: metrics.lateralAcceleration.toFixed(2) + 'g' },
-        { label: 'Cornering Speed', value: metrics.corneringSpeed.toFixed(0) + ' km/h' },
-        { label: 'Top Speed', value: metrics.topSpeed.toFixed(0) + ' km/h' },
-        { label: 'Track Layout', value: activeLayout ? activeLayout.name : 'Full' },
-      ]
-    : [];
+  const performanceData = metrics ? [
+    { label: '0-60 mph', value: metrics.acceleration0to60.toFixed(2) + 's' },
+    { label: 'Brake 100→0', value: metrics.brakingDistance100to0.toFixed(1) + 'm' },
+    { label: 'Lateral G', value: metrics.lateralAcceleration.toFixed(2) + 'g' },
+    { label: 'Top Speed', value: metrics.topSpeed.toFixed(0) + ' km/h' },
+    { label: 'Layout', value: activeLayoutName },
+  ] : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -322,127 +248,86 @@ export default function TuningApp() {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-white font-bold">GT</div>
-            <h1 className="text-xl font-bold tracking-tighter italic">TUNING SIMULATOR <span className="text-primary text-xs not-italic font-normal align-top ml-1">ALPHA</span></h1>
+            <h1 className="text-xl font-bold tracking-tighter italic uppercase">Tuning Simulator</h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">Performance Rating</p>
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Overall Rating</p>
               <p className="text-2xl font-black mono-num text-primary leading-none">{metrics?.overallRating.toFixed(1)}</p>
             </div>
-            <div className="h-10 w-px bg-border hidden sm:block"></div>
-            <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-white transition-colors uppercase text-xs font-bold tracking-widest">Export Setup</Button>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto p-4 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* Selection Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Car Selection */}
-          <Card className="bg-card border-border p-6">
-            <h2 className="text-lg font-semibold mb-4">Select Vehicle</h2>
+          <Card className="bg-card border-border p-5">
+            <h2 className="text-sm font-bold uppercase tracking-widest mb-4 text-primary">Select Vehicle</h2>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs uppercase text-muted-foreground font-bold tracking-widest">Manufacturer</label>
-                <Select value={selectedManufacturer} onValueChange={(val) => {
-                  setSelectedManufacturer(val);
-                  const firstModel = GT7_CARS.find(car => car.manufacturer === val)?.model || '';
-                  setSelectedModel(firstModel);
-                  const car = GT7_CARS.find(car => car.manufacturer === val && car.model === firstModel);
-                  if (car) setSelectedCar(car);
-                }}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Manufacturer" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border max-h-96">
-                    {manufacturers.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs uppercase text-muted-foreground font-bold tracking-widest">Model</label>
-                <Select value={selectedModel} onValueChange={(val) => {
-                  setSelectedModel(val);
-                  const car = GT7_CARS.find(car => car.manufacturer === selectedManufacturer && car.model === val);
-                  if (car) setSelectedCar(car);
-                }}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Model" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border max-h-96">
-                    {models.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={selectedManufacturer} onValueChange={(val) => {
+                setSelectedManufacturer(val);
+                const firstModel = GT7_CARS.find(car => car.manufacturer === val)?.model || '';
+                setSelectedModel(firstModel);
+                setSelectedCar(GT7_CARS.find(car => car.manufacturer === val && car.model === firstModel) || null);
+              }}>
+                <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Manufacturer" /></SelectTrigger>
+                <SelectContent className="max-h-80">{manufacturers.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={selectedModel} onValueChange={(val) => {
+                setSelectedModel(val);
+                setSelectedCar(GT7_CARS.find(car => car.manufacturer === selectedManufacturer && car.model === val) || null);
+              }}>
+                <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Model" /></SelectTrigger>
+                <SelectContent className="max-h-80">{models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
           </Card>
 
-          {/* Track Selection */}
-          <Card className="bg-card border-border p-6">
-            <h2 className="text-lg font-semibold mb-4">Select Track</h2>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs uppercase text-muted-foreground font-bold tracking-widest">Location</label>
-                <Select value={selectedTrack?.id} onValueChange={(id) => {
-                  const track = GT7_TRACKS.find(t => t.id === id);
-                  if (track) setSelectedTrack(track);
-                }}>
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Choose a track..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border max-h-96">
-                    {GT7_TRACKS.map((track) => (
-                      <SelectItem key={track.id} value={track.id}>
-                        {track.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+          {/* Hierarchical Track Selection */}
+          <Card className="bg-card border-border p-5">
+            <h2 className="text-sm font-bold uppercase tracking-widest mb-4 text-primary">Select Track</h2>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <Select value={selectedRegion} onValueChange={(val) => {
+                setSelectedRegion(val);
+                const firstLoc = TRACK_REGIONS.find(r => r.name === val)?.locations[0];
+                setSelectedLocation(firstLoc?.name || '');
+                setSelectedCircuit(firstLoc?.circuits[0] || null);
+              }}>
+                <SelectTrigger className="text-xs h-8"><SelectValue placeholder="Region" /></SelectTrigger>
+                <SelectContent>{TRACK_REGIONS.map(r => <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={selectedLocation} onValueChange={(val) => {
+                setSelectedLocation(val);
+                setSelectedCircuit(currentLocations.find(l => l.name === val)?.circuits[0] || null);
+              }}>
+                <SelectTrigger className="text-xs h-8"><SelectValue placeholder="Location" /></SelectTrigger>
+                <SelectContent>{currentLocations.map(l => <SelectItem key={l.name} value={l.name}>{l.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Select value={selectedCircuit?.id} onValueChange={(id) => setSelectedCircuit(ALL_CIRCUITS.find(c => c.id === id) || null)}>
+                <SelectTrigger><SelectValue placeholder="Circuit" /></SelectTrigger>
+                <SelectContent>{currentCircuits.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {selectedCircuit?.layouts && (
+                <Select value={selectedLayoutId} onValueChange={setSelectedLayoutId}>
+                  <SelectTrigger className="bg-secondary/30"><SelectValue placeholder="Layout" /></SelectTrigger>
+                  <SelectContent>{selectedCircuit.layouts.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
-
-              {selectedTrack && selectedTrack.layouts && selectedTrack.layouts.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs uppercase text-muted-foreground font-bold tracking-widest">Layout</label>
-                  <Select value={selectedLayoutId} onValueChange={setSelectedLayoutId}>
-                    <SelectTrigger className="bg-input border-border text-foreground">
-                      <SelectValue placeholder="Choose a layout..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {selectedTrack.layouts.map((layout) => (
-                        <SelectItem key={layout.id} value={layout.id}>
-                          {layout.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               )}
             </div>
           </Card>
 
-          {/* Visualization */}
-          <Card className="bg-card border-border p-6 flex flex-col items-center justify-center min-h-[250px]">
-            <h2 className="text-lg font-semibold mb-2 self-start">Performance Balance</h2>
-            <div className="w-full h-full min-h-[200px]">
+          {/* Performance Visualization */}
+          <Card className="bg-card border-border p-5 flex flex-col items-center justify-center">
+            <div className="w-full h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                <RadarChart data={radarData}>
                   <PolarGrid stroke="#333" />
                   <PolarAngleAxis dataKey="name" tick={{ fill: '#888', fontSize: 10 }} />
-                  <Radar
-                    name="Performance"
-                    dataKey="value"
-                    stroke="#E8002D"
-                    fill="#E8002D"
-                    fillOpacity={0.6}
-                  />
+                  <Radar dataKey="value" stroke="#E8002D" fill="#E8002D" fillOpacity={0.5} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -451,248 +336,114 @@ export default function TuningApp() {
 
         {selectedCar ? (
           <>
-            {/* Tuning Presets */}
-            <div className="flex flex-wrap gap-2 mb-8">
-              <Button 
-                variant={tuningMode === 'balanced' ? 'default' : 'outline'} 
-                onClick={() => applyPreset('balanced')}
-                className="uppercase text-xs font-bold tracking-widest h-8"
-              >Balanced</Button>
-              <Button 
-                variant={tuningMode === 'acceleration' ? 'default' : 'outline'} 
-                onClick={() => applyPreset('acceleration')}
-                className="uppercase text-xs font-bold tracking-widest h-8"
-              >Acceleration</Button>
-              <Button 
-                variant={tuningMode === 'cornering' ? 'default' : 'outline'} 
-                onClick={() => applyPreset('cornering')}
-                className="uppercase text-xs font-bold tracking-widest h-8"
-              >Cornering</Button>
-              <Button 
-                variant={tuningMode === 'braking' ? 'default' : 'outline'} 
-                onClick={() => applyPreset('braking')}
-                className="uppercase text-xs font-bold tracking-widest h-8"
-              >Braking</Button>
-              <div className="w-px h-8 bg-border mx-2"></div>
-              <Button 
-                variant={tuningMode === 'track' ? 'default' : 'outline'} 
-                onClick={() => applyTrackPreset('aggressive')}
-                className="uppercase text-xs font-bold tracking-widest h-8 border-primary text-primary"
-              >Aggressive</Button>
-              <Button 
-                variant={tuningMode === 'track' ? 'default' : 'outline'} 
-                onClick={() => applyTrackPreset('balanced')}
-                className="uppercase text-xs font-bold tracking-widest h-8 border-primary text-primary"
-              >Track Balanced</Button>
-              <Button 
-                variant={tuningMode === 'track' ? 'default' : 'outline'} 
-                onClick={() => applyTrackPreset('conservative')}
-                className="uppercase text-xs font-bold tracking-widest h-8 border-primary text-primary"
-              >Conservative</Button>
+            {/* Presets */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {['balanced', 'acceleration', 'cornering', 'braking'].map(mode => (
+                <Button key={mode} variant={tuningMode === mode ? 'default' : 'outline'} onClick={() => applyPreset(mode as any)} className="uppercase text-[10px] font-bold h-7 px-3">{mode}</Button>
+              ))}
+              <div className="w-px h-7 bg-border mx-1"></div>
+              {['aggressive', 'balanced', 'conservative'].map(p => (
+                <Button key={p} variant="outline" onClick={() => applyTrackPreset(p as any)} className="uppercase text-[10px] font-bold h-7 px-3 border-primary/50 text-primary">Track {p}</Button>
+              ))}
             </div>
 
-            {/* Tuning Controls */}
+            {/* Tuning Tabs */}
             <Tabs defaultValue="suspension" className="mb-8">
-              <TabsList className="bg-card border border-border w-full justify-start overflow-x-auto">
-                <TabsTrigger value="suspension" className="uppercase text-xs font-bold tracking-widest">Suspension</TabsTrigger>
-                <TabsTrigger value="aerodynamics" className="uppercase text-xs font-bold tracking-widest">Aerodynamics</TabsTrigger>
-                <TabsTrigger value="drivetrain" className="uppercase text-xs font-bold tracking-widest">Drivetrain</TabsTrigger>
-                <TabsTrigger value="braking" className="uppercase text-xs font-bold tracking-widest">Braking</TabsTrigger>
+              <TabsList className="bg-card border border-border w-full justify-start h-10">
+                <TabsTrigger value="suspension" className="text-xs font-bold uppercase">Suspension</TabsTrigger>
+                <TabsTrigger value="aerodynamics" className="text-xs font-bold uppercase">Aero & Tires</TabsTrigger>
+                <TabsTrigger value="drivetrain" className="text-xs font-bold uppercase">Drivetrain</TabsTrigger>
+                <TabsTrigger value="braking" className="text-xs font-bold uppercase">Braking</TabsTrigger>
               </TabsList>
 
               {/* Suspension Tab */}
-              <TabsContent value="suspension" className="space-y-6">
-                <Card className="bg-card border-border p-6">
-                  <h3 className="font-semibold mb-4 uppercase text-xs tracking-widest text-primary">Suspension Settings</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+              <TabsContent value="suspension">
+                <Card className="p-6 bg-card border-border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                     {/* Ride Height */}
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Ride Height Front (mm)</label>
-                        <span className="mono-num text-primary">{tuningSetup.rideHeightFront} mm</span>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Ride Height (F/R)</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightFront} mm</span>
+                          <Slider value={[tuningSetup.rideHeightFront || 100]} onValueChange={([v]) => updateTuning('rideHeightFront', v)} min={50} max={200} step={1} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightRear} mm</span>
+                          <Slider value={[tuningSetup.rideHeightRear || 100]} onValueChange={([v]) => updateTuning('rideHeightRear', v)} min={50} max={200} step={1} />
+                        </div>
                       </div>
-                      <Slider
-                        value={[tuningSetup.rideHeightFront || 100]}
-                        onValueChange={(val) => updateTuning('rideHeightFront', val[0])}
-                        min={50}
-                        max={200}
-                        step={5}
-                        className="w-full"
-                      />
                     </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Ride Height Rear (mm)</label>
-                        <span className="mono-num text-primary">{tuningSetup.rideHeightRear} mm</span>
+                    {/* Natural Frequency */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Natural Frequency (F/R)</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.naturalFrequencyFront?.toFixed(2)} Hz</span>
+                          <Slider value={[tuningSetup.naturalFrequencyFront || 2.0]} onValueChange={([v]) => updateTuning('naturalFrequencyFront', v)} min={1.0} max={5.0} step={0.05} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.naturalFrequencyRear?.toFixed(2)} Hz</span>
+                          <Slider value={[tuningSetup.naturalFrequencyRear || 2.0]} onValueChange={([v]) => updateTuning('naturalFrequencyRear', v)} min={1.0} max={5.0} step={0.05} />
+                        </div>
                       </div>
-                      <Slider
-                        value={[tuningSetup.rideHeightRear || 100]}
-                        onValueChange={(val) => updateTuning('rideHeightRear', val[0])}
-                        min={50}
-                        max={200}
-                        step={5}
-                        className="w-full"
-                      />
                     </div>
-
-                    {/* Anti-Roll Bars */}
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Anti-Roll Bar Front</label>
-                        <span className="mono-num text-primary">{tuningSetup.antiRollBarFront}</span>
+                    {/* Toe Angles */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Toe Angle (F/R)</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.toeInFront?.toFixed(2)}°</span>
+                          <Slider value={[tuningSetup.toeInFront || 0]} onValueChange={([v]) => updateTuning('toeInFront', v)} min={-1.0} max={1.0} step={0.01} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.toeInRear?.toFixed(2)}°</span>
+                          <Slider value={[tuningSetup.toeInRear || 0]} onValueChange={([v]) => updateTuning('toeInRear', v)} min={-1.0} max={1.0} step={0.01} />
+                        </div>
                       </div>
-                      <Slider
-                        value={[tuningSetup.antiRollBarFront || 5]}
-                        onValueChange={(val) => updateTuning('antiRollBarFront', val[0])}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
                     </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Anti-Roll Bar Rear</label>
-                        <span className="mono-num text-primary">{tuningSetup.antiRollBarRear}</span>
+                    {/* Dampers */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Dampers (Exp/Comp)</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">Exp: {tuningSetup.damperExpansionFront} / {tuningSetup.damperExpansionRear}</span>
+                          <Slider value={[tuningSetup.damperExpansionFront || 5]} onValueChange={([v]) => updateTuning('damperExpansionFront', v)} min={1} max={10} step={1} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">Comp: {tuningSetup.damperCompressionFront} / {tuningSetup.damperCompressionRear}</span>
+                          <Slider value={[tuningSetup.damperCompressionFront || 5]} onValueChange={([v]) => updateTuning('damperCompressionFront', v)} min={1} max={10} step={1} />
+                        </div>
                       </div>
-                      <Slider
-                        value={[tuningSetup.antiRollBarRear || 5]}
-                        onValueChange={(val) => updateTuning('antiRollBarRear', val[0])}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    {/* Damper Expansion */}
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Damper Expansion Front</label>
-                        <span className="mono-num text-primary">{tuningSetup.damperExpansionFront}</span>
-                      </div>
-                      <Slider
-                        value={[tuningSetup.damperExpansionFront || 5]}
-                        onValueChange={(val) => updateTuning('damperExpansionFront', val[0])}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Damper Expansion Rear</label>
-                        <span className="mono-num text-primary">{tuningSetup.damperExpansionRear}</span>
-                      </div>
-                      <Slider
-                        value={[tuningSetup.damperExpansionRear || 5]}
-                        onValueChange={(val) => updateTuning('damperExpansionRear', val[0])}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    {/* Damper Compression */}
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Damper Compression Front</label>
-                        <span className="mono-num text-primary">{tuningSetup.damperCompressionFront}</span>
-                      </div>
-                      <Slider
-                        value={[tuningSetup.damperCompressionFront || 5]}
-                        onValueChange={(val) => updateTuning('damperCompressionFront', val[0])}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Damper Compression Rear</label>
-                        <span className="mono-num text-primary">{tuningSetup.damperCompressionRear}</span>
-                      </div>
-                      <Slider
-                        value={[tuningSetup.damperCompressionRear || 5]}
-                        onValueChange={(val) => updateTuning('damperCompressionRear', val[0])}
-                        min={1}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
                     </div>
                   </div>
                 </Card>
               </TabsContent>
 
-              {/* Aerodynamics Tab */}
-              <TabsContent value="aerodynamics" className="space-y-6">
-                <Card className="bg-card border-border p-6">
-                  <h3 className="font-semibold mb-4 uppercase text-xs tracking-widest text-primary">Aerodynamics & Tires</h3>
+              {/* Aero & Tires */}
+              <TabsContent value="aerodynamics">
+                <Card className="p-6 bg-card border-border">
                   <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-medium">Front Downforce (lbs)</label>
-                          <span className="mono-num text-primary">{tuningSetup.downforceFront}</span>
-                        </div>
-                        <Slider
-                          value={[tuningSetup.downforceFront || 100]}
-                          onValueChange={(val) => updateTuning('downforceFront', val[0])}
-                          min={0}
-                          max={500}
-                          step={10}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-medium">Rear Downforce (lbs)</label>
-                          <span className="mono-num text-primary">{tuningSetup.downforceRear}</span>
-                        </div>
-                        <Slider
-                          value={[tuningSetup.downforceRear || 150]}
-                          onValueChange={(val) => updateTuning('downforceRear', val[0])}
-                          min={0}
-                          max={500}
-                          step={10}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-border">
-                      <div className="flex flex-col space-y-2">
-                        <label className="text-sm font-medium uppercase text-xs tracking-widest text-muted-foreground">Tire Compound</label>
-                        <Select 
-                          value={Object.keys(TIRE_GRIP_COEFFICIENTS).find(key => TIRE_GRIP_COEFFICIENTS[key as keyof typeof TIRE_GRIP_COEFFICIENTS] === tuningSetup.tireGripCoefficient) || 'racing-hard'} 
-                          onValueChange={(val) => updateTuning('tireGripCoefficient', TIRE_GRIP_COEFFICIENTS[val as keyof typeof TIRE_GRIP_COEFFICIENTS])}
-                        >
-                          <SelectTrigger className="bg-input border-border text-foreground w-full md:w-64">
-                            <SelectValue placeholder="Select tire..." />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card border-border">
-                            <SelectItem value="comfort-hard">Comfort: Hard</SelectItem>
-                            <SelectItem value="comfort-medium">Comfort: Medium</SelectItem>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                        <label className="text-xs font-bold uppercase text-muted-foreground">Tire Compound</label>
+                        <Select value={Object.keys(TIRE_GRIP_COEFFICIENTS).find(k => TIRE_GRIP_COEFFICIENTS[k as keyof typeof TIRE_GRIP_COEFFICIENTS] === tuningSetup.tireGripCoefficient) || 'racing-hard'} onValueChange={v => updateTuning('tireGripCoefficient', TIRE_GRIP_COEFFICIENTS[v as keyof typeof TIRE_GRIP_COEFFICIENTS])}>
+                          <SelectTrigger><SelectValue placeholder="Select Tire" /></SelectTrigger>
+                          <SelectContent>
                             <SelectItem value="comfort-soft">Comfort: Soft</SelectItem>
-                            <SelectItem value="sports-hard">Sports: Hard</SelectItem>
-                            <SelectItem value="sports-medium">Sports: Medium</SelectItem>
                             <SelectItem value="sports-soft">Sports: Soft</SelectItem>
                             <SelectItem value="racing-hard">Racing: Hard</SelectItem>
-                            <SelectItem value="racing-medium">Racing: Medium</SelectItem>
                             <SelectItem value="racing-soft">Racing: Soft</SelectItem>
                             <SelectItem value="racing-slick">Racing: Slick</SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground mt-1">Grip Coefficient: <span className="text-primary font-bold">{tuningSetup.tireGripCoefficient?.toFixed(2)}</span></p>
+                      </div>
+                      <div className="space-y-4">
+                        <label className="text-xs font-bold uppercase text-muted-foreground">Downforce (F/R)</label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Slider value={[tuningSetup.downforceFront || 100]} onValueChange={([v]) => updateTuning('downforceFront', v)} min={0} max={500} step={5} />
+                          <Slider value={[tuningSetup.downforceRear || 150]} onValueChange={([v]) => updateTuning('downforceRear', v)} min={0} max={500} step={5} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -700,108 +451,43 @@ export default function TuningApp() {
               </TabsContent>
 
               {/* Drivetrain Tab */}
-              <TabsContent value="drivetrain" className="space-y-6">
-                <Card className="bg-card border-border p-6">
-                  <h3 className="font-semibold mb-4 uppercase text-xs tracking-widest text-primary">Drivetrain & Power</h3>
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-medium">Power Restriction (%)</label>
-                          <span className="mono-num text-primary">{tuningSetup.powerRestriction}%</span>
-                        </div>
-                        <Slider
-                          value={[tuningSetup.powerRestriction || 100]}
-                          onValueChange={(val) => updateTuning('powerRestriction', val[0])}
-                          min={50}
-                          max={100}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-medium">Ballast Weight (kg)</label>
-                          <span className="mono-num text-primary">{tuningSetup.ballastKg} kg</span>
-                        </div>
-                        <Slider
-                          value={[tuningSetup.ballastKg || 0]}
-                          onValueChange={(val) => updateTuning('ballastKg', val[0])}
-                          min={0}
-                          max={200}
-                          step={10}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-medium">Initial Torque</label>
-                          <span className="mono-num text-primary">{tuningSetup.differentialInitialTorque}</span>
-                        </div>
-                        <Slider
-                          value={[tuningSetup.differentialInitialTorque || 10]}
-                          onValueChange={(val) => updateTuning('differentialInitialTorque', val[0])}
-                          min={5}
-                          max={60}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <label className="text-sm font-medium">Acceleration Sensitivity</label>
-                          <span className="mono-num text-primary">{tuningSetup.differentialAcceleration}</span>
-                        </div>
-                        <Slider
-                          value={[tuningSetup.differentialAcceleration || 60]}
-                          onValueChange={(val) => updateTuning('differentialAcceleration', val[0])}
-                          min={0}
-                          max={100}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
+              <TabsContent value="drivetrain">
+                <Card className="p-6 bg-card border-border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Initial Torque</label>
+                      <span className="block text-xs mono-num text-primary">{tuningSetup.differentialInitialTorque}</span>
+                      <Slider value={[tuningSetup.differentialInitialTorque || 10]} onValueChange={([v]) => updateTuning('differentialInitialTorque', v)} min={5} max={60} step={1} />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Acceleration Sensitivity</label>
+                      <span className="block text-xs mono-num text-primary">{tuningSetup.differentialAcceleration}</span>
+                      <Slider value={[tuningSetup.differentialAcceleration || 60]} onValueChange={([v]) => updateTuning('differentialAcceleration', v)} min={5} max={60} step={1} />
                     </div>
                   </div>
                 </Card>
               </TabsContent>
 
               {/* Braking Tab */}
-              <TabsContent value="braking" className="space-y-6">
-                <Card className="bg-card border-border p-6">
-                  <h3 className="font-semibold mb-4 uppercase text-xs tracking-widest text-primary">Brake Setup</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Brake Balance</label>
-                        <span className="mono-num text-primary">{tuningSetup.brakeBalance}%</span>
-                      </div>
-                      <Slider
-                        value={[tuningSetup.brakeBalance || 55]}
-                        onValueChange={(val) => updateTuning('brakeBalance', val[0])}
-                        min={40}
-                        max={70}
-                        step={1}
-                        className="w-full"
-                      />
+              <TabsContent value="braking">
+                <Card className="p-6 bg-card border-border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Brake System</label>
+                      <Select value={tuningSetup.brakeSystemType} onValueChange={v => updateTuning('brakeSystemType', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select Brakes" /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(BRAKE_SYSTEMS).map(([id, info]) => <SelectItem key={id} value={id}>{info.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
-
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <label className="text-sm font-medium">Brake Power Multiplier</label>
-                        <span className="mono-num text-primary">{tuningSetup.brakePowerMultiplier?.toFixed(2)}x</span>
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">Brake Balance (F -5 to R 5)</label>
+                      <div className="flex justify-between text-[10px] mono-num text-primary">
+                        <span>F {tuningSetup.brakeBalance && tuningSetup.brakeBalance < 0 ? tuningSetup.brakeBalance : 0}</span>
+                        <span>R {tuningSetup.brakeBalance && tuningSetup.brakeBalance > 0 ? tuningSetup.brakeBalance : 0}</span>
                       </div>
-                      <Slider
-                        value={[tuningSetup.brakePowerMultiplier || 1.35]}
-                        onValueChange={(val) => updateTuning('brakePowerMultiplier', val[0])}
-                        min={1.0}
-                        max={1.5}
-                        step={0.05}
-                        className="w-full"
-                      />
+                      <Slider value={[tuningSetup.brakeBalance || 0]} onValueChange={([v]) => updateTuning('brakeBalance', v)} min={-5} max={5} step={1} />
                     </div>
                   </div>
                 </Card>
@@ -809,21 +495,18 @@ export default function TuningApp() {
             </Tabs>
 
             {/* Performance Summary */}
-            <Card className="bg-card border-border p-6 mb-8">
-              <h3 className="font-semibold mb-4 uppercase text-xs tracking-widest text-primary">Performance Summary</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {performanceData.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-secondary/30 rounded border border-border">
-                    <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-tighter mb-1">{item.label}</p>
-                    <p className="text-xl font-black mono-num text-primary leading-none">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {performanceData.map((item, idx) => (
+                <div key={idx} className="p-4 bg-secondary/20 rounded border border-border">
+                  <p className="text-[9px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">{item.label}</p>
+                  <p className="text-lg font-black mono-num text-primary leading-none">{item.value}</p>
+                </div>
+              ))}
+            </div>
           </>
         ) : (
-          <Card className="bg-card border-border p-12 text-center">
-            <p className="text-muted-foreground uppercase tracking-widest text-sm">Select a vehicle to initialize tuning simulation</p>
+          <Card className="p-20 text-center border-dashed border-2">
+            <p className="text-muted-foreground uppercase tracking-widest text-sm">Initialize Car Data to Begin</p>
           </Card>
         )}
       </main>

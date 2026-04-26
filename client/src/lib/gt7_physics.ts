@@ -42,8 +42,8 @@ export interface TuningSetup {
   downforceRear: number; // lbs
   
   // Brakes
-  brakePowerMultiplier: number; // 1.0-1.5 based on brake type
-  brakeBalance: number; // 0-100 (front to rear)
+  brakeSystemType: 'normal' | 'sports' | 'racing' | 'carbon';
+  brakeBalance: number; // -5 to 5 (Front to Rear)
   
   // Differential
   differentialInitialTorque: number; // 0-100
@@ -108,11 +108,11 @@ export const TIRE_GRIP_COEFFICIENTS = {
 };
 
 // Brake system multipliers
-const BRAKE_MULTIPLIERS = {
-  normal: 1.0,
-  sports: 1.15,
-  racing: 1.35,
-  carbon: 1.4,
+export const BRAKE_SYSTEMS = {
+  normal: { name: 'Normal Brakes', multiplier: 1.0 },
+  sports: { name: 'Sports Brakes & Pads', multiplier: 1.15 },
+  racing: { name: 'Racing Brakes & Pads', multiplier: 1.35 },
+  carbon: { name: 'Carbon Ceramic Discs & Pads', multiplier: 1.45 },
 };
 
 /**
@@ -203,24 +203,20 @@ export function calculate0to200Time(
  */
 export function calculateBrakingDistance100to0(
   weight: number,
-  brakePower: number,
+  brakeSystem: keyof typeof BRAKE_SYSTEMS,
   brakeBalance: number,
   tireGrip: number,
   differentialBraking: number
 ): number {
-  // Speed: 100 km/h = 27.78 m/s
   const initialSpeed = 27.78;
-  
-  // Braking deceleration affected by brake power, tire grip, and differential
+  const brakePower = BRAKE_SYSTEMS[brakeSystem].multiplier;
   const gripFactor = (tireGrip / 1.0) * (1 + differentialBraking / 200);
   const deceleration = (brakePower * GRAVITY * gripFactor) / 1.5;
   
-  // Brake balance affects deceleration efficiency
-  const balanceFactor = 0.8 + (Math.abs(brakeBalance - 50) / 100) * 0.4;
+  // Convert -5..5 to a factor (0 is optimal, deviations reduce efficiency slightly)
+  const balanceFactor = 1.0 - (Math.abs(brakeBalance) / 25);
   
-  // Distance = v² / (2 * a)
   const distance = (initialSpeed * initialSpeed) / (2 * deceleration * balanceFactor);
-  
   return Math.max(20, distance);
 }
 

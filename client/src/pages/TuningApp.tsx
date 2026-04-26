@@ -286,6 +286,29 @@ export default function TuningApp() {
                 <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Model" /></SelectTrigger>
                 <SelectContent className="max-h-80">{models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
               </Select>
+              
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-muted-foreground font-bold">Custom BHP</label>
+                  <Input 
+                    type="number" 
+                    placeholder={selectedCar?.power_bhp.toString()} 
+                    value={customBhp || ''} 
+                    onChange={(e) => setCustomBhp(e.target.value ? parseInt(e.target.value) : null)}
+                    className="h-8 text-xs bg-input border-border"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-muted-foreground font-bold">Custom KG</label>
+                  <Input 
+                    type="number" 
+                    placeholder={selectedCar?.weight_kg.toString()} 
+                    value={customWeight || ''} 
+                    onChange={(e) => setCustomWeight(e.target.value ? parseInt(e.target.value) : null)}
+                    className="h-8 text-xs bg-input border-border"
+                  />
+                </div>
+              </div>
             </div>
           </Card>
 

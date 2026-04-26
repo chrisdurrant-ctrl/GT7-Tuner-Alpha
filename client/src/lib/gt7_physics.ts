@@ -28,6 +28,10 @@ export interface TuningSetup {
   antiRollBarRear: number; // 1-10
   naturalFrequencyFront: number; // Hz
   naturalFrequencyRear: number; // Hz
+  damperExpansionFront: number; // 1-10 (rebound)
+  damperExpansionRear: number; // 1-10 (rebound)
+  damperCompressionFront: number; // 1-10
+  damperCompressionRear: number; // 1-10
   camberFront: number; // degrees
   camberRear: number; // degrees
   toeInFront: number; // degrees

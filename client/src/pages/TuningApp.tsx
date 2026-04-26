@@ -82,6 +82,10 @@ export default function TuningApp() {
     antiRollBarRear: 5,
     naturalFrequencyFront: 2.0,
     naturalFrequencyRear: 2.0,
+    damperExpansionFront: 5,
+    damperExpansionRear: 5,
+    damperCompressionFront: 5,
+    damperCompressionRear: 5,
     camberFront: 2.0,
     camberRear: 1.5,
     toeInFront: 0.2,
@@ -509,6 +513,39 @@ export default function TuningApp() {
                 <Card className="bg-card border-border p-6">
                   <h3 className="font-semibold mb-4">Suspension Setup</h3>
                   <div className="space-y-6">
+                    {/* Ride Height */}
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium">Ride Height Front (mm)</label>
+                        <span className="mono-num text-primary">{tuningSetup.rideHeightFront} mm</span>
+                      </div>
+                      <Slider
+                        value={[tuningSetup.rideHeightFront || 100]}
+                        onValueChange={(val) => updateTuning('rideHeightFront', val[0])}
+                        min={50}
+                        max={200}
+                        step={5}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Lower = better aero & handling, higher = more ground clearance</p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium">Ride Height Rear (mm)</label>
+                        <span className="mono-num text-primary">{tuningSetup.rideHeightRear} mm</span>
+                      </div>
+                      <Slider
+                        value={[tuningSetup.rideHeightRear || 100]}
+                        onValueChange={(val) => updateTuning('rideHeightRear', val[0])}
+                        min={50}
+                        max={200}
+                        step={5}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Rear higher than front = understeer tendency</p>
+                    </div>
+
                     {/* Anti-Roll Bars */}
                     <div>
                       <div className="flex justify-between mb-2">
@@ -604,6 +641,72 @@ export default function TuningApp() {
                         step={0.1}
                         className="w-full"
                       />
+                    </div>
+
+                    {/* Damper Expansion (Rebound) */}
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium">Damper Expansion Front</label>
+                        <span className="mono-num text-primary">{tuningSetup.damperExpansionFront?.toFixed(1)}</span>
+                      </div>
+                      <Slider
+                        value={[tuningSetup.damperExpansionFront || 5]}
+                        onValueChange={(val) => updateTuning('damperExpansionFront', val[0])}
+                        min={1}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Controls rebound speed — higher = slower rebound, more stability</p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium">Damper Expansion Rear</label>
+                        <span className="mono-num text-primary">{tuningSetup.damperExpansionRear?.toFixed(1)}</span>
+                      </div>
+                      <Slider
+                        value={[tuningSetup.damperExpansionRear || 5]}
+                        onValueChange={(val) => updateTuning('damperExpansionRear', val[0])}
+                        min={1}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Higher rear rebound = more oversteer on corner exit</p>
+                    </div>
+
+                    {/* Damper Compression */}
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium">Damper Compression Front</label>
+                        <span className="mono-num text-primary">{tuningSetup.damperCompressionFront?.toFixed(1)}</span>
+                      </div>
+                      <Slider
+                        value={[tuningSetup.damperCompressionFront || 5]}
+                        onValueChange={(val) => updateTuning('damperCompressionFront', val[0])}
+                        min={1}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Controls bump absorption — higher = stiffer, less body roll</p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium">Damper Compression Rear</label>
+                        <span className="mono-num text-primary">{tuningSetup.damperCompressionRear?.toFixed(1)}</span>
+                      </div>
+                      <Slider
+                        value={[tuningSetup.damperCompressionRear || 5]}
+                        onValueChange={(val) => updateTuning('damperCompressionRear', val[0])}
+                        min={1}
+                        max={10}
+                        step={1}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Higher rear compression = more rear stability under braking</p>
                     </div>
                   </div>
                 </Card>

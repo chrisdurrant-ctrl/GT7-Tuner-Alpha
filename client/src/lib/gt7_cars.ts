@@ -25,6 +25,10 @@ export interface GT7Car {
   price_type: string;
   version: string | null;
   version_num?: number | null;
+  tuningLimits?: {
+    rideHeight?: [number, number];
+    naturalFrequency?: [number, number];
+  };
 }
 
 export const GT7_CARS: GT7Car[] = [
@@ -1706,7 +1710,11 @@ export const GT7_CARS: GT7Car[] = [
     "price": 450000,
     "price_type": "BC",
     "version": null,
-    "version_num": null
+    "version_num": null,
+    "tuningLimits": {
+      "rideHeight": [50, 100],
+      "naturalFrequency": [3.00, 5.00]
+    }
   },
   {
     "country_flag": "🇩🇪",
@@ -1727,7 +1735,11 @@ export const GT7_CARS: GT7Car[] = [
     "price": 450000,
     "price_type": "BC",
     "version": null,
-    "version_num": null
+    "version_num": null,
+    "tuningLimits": {
+      "rideHeight": [50, 100],
+      "naturalFrequency": [3.00, 5.00]
+    }
   },
   {
     "country_flag": "🇩🇪",

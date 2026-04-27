@@ -101,7 +101,7 @@ export default function TuningApp() {
   const suspensionLimits = useMemo(() => {
     const isRaceCar = selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
     
-    // Default ranges
+    // Default ranges based on upgrade
     let rhMin = 80, rhMax = 200;
     let nfMin = 1.0, nfMax = 3.0;
     let dampExpMin = 1, dampExpMax = 10;
@@ -120,6 +120,18 @@ export default function TuningApp() {
     } else if (suspensionType === 'street') {
       rhMin = 80; rhMax = 180;
       nfMin = 1.2; nfMax = 2.5;
+    }
+
+    // Override with Car-Specific Limits if they exist in the database
+    if (selectedCar?.tuningLimits) {
+      if (selectedCar.tuningLimits.rideHeight) {
+        rhMin = selectedCar.tuningLimits.rideHeight[0];
+        rhMax = selectedCar.tuningLimits.rideHeight[1];
+      }
+      if (selectedCar.tuningLimits.naturalFrequency) {
+        nfMin = selectedCar.tuningLimits.naturalFrequency[0];
+        nfMax = selectedCar.tuningLimits.naturalFrequency[1];
+      }
     }
 
     return { rhMin, rhMax, nfMin, nfMax, dampExpMin, dampExpMax, dampCompMin, dampCompMax };
@@ -145,10 +157,15 @@ export default function TuningApp() {
 
   const applyPreset = (mode: typeof tuningMode) => {
     setTuningMode(mode);
+    
+    // Helper to clamp values to car-specific limits
+    const clampNF = (val: number) => Math.min(Math.max(val, suspensionLimits.nfMin), suspensionLimits.nfMax);
+    const clampRH = (val: number) => Math.min(Math.max(val, suspensionLimits.rhMin), suspensionLimits.rhMax);
+
     const presets = {
       acceleration: {
-        rideHeightFront: suspensionLimits.rhMin + 10, rideHeightRear: suspensionLimits.rhMin + 15,
-        naturalFrequencyFront: suspensionLimits.nfMin + 0.8, naturalFrequencyRear: suspensionLimits.nfMin + 0.8,
+        rideHeightFront: clampRH(suspensionLimits.rhMin + 10), rideHeightRear: clampRH(suspensionLimits.rhMin + 15),
+        naturalFrequencyFront: clampNF(suspensionLimits.nfMin + 0.8), naturalFrequencyRear: clampNF(suspensionLimits.nfMin + 0.8),
         antiRollBarFront: 3, antiRollBarRear: 3,
         damperExpansionFront: suspensionLimits.dampExpMin + 12, damperExpansionRear: suspensionLimits.dampExpMin + 12,
         damperCompressionFront: suspensionLimits.dampCompMin + 12, damperCompressionRear: suspensionLimits.dampCompMin + 12,
@@ -159,8 +176,8 @@ export default function TuningApp() {
         differentialInitialTorque: 15, differentialAcceleration: 55, differentialBraking: 35,
       },
       cornering: {
-        rideHeightFront: suspensionLimits.rhMin, rideHeightRear: suspensionLimits.rhMin,
-        naturalFrequencyFront: suspensionLimits.nfMax, naturalFrequencyRear: suspensionLimits.nfMax,
+        rideHeightFront: clampRH(suspensionLimits.rhMin), rideHeightRear: clampRH(suspensionLimits.rhMin),
+        naturalFrequencyFront: clampNF(suspensionLimits.nfMax), naturalFrequencyRear: clampNF(suspensionLimits.nfMax),
         antiRollBarFront: 8, antiRollBarRear: 8,
         damperExpansionFront: suspensionLimits.dampExpMax - 2, damperExpansionRear: suspensionLimits.dampExpMax - 2,
         damperCompressionFront: suspensionLimits.dampCompMax - 2, damperCompressionRear: suspensionLimits.dampCompMax - 2,
@@ -171,8 +188,8 @@ export default function TuningApp() {
         differentialInitialTorque: 10, differentialAcceleration: 35, differentialBraking: 25,
       },
       braking: {
-        rideHeightFront: suspensionLimits.rhMin + 20, rideHeightRear: suspensionLimits.rhMin + 30,
-        naturalFrequencyFront: suspensionLimits.nfMin + 1.0, naturalFrequencyRear: suspensionLimits.nfMin + 1.2,
+        rideHeightFront: clampRH(suspensionLimits.rhMin + 20), rideHeightRear: clampRH(suspensionLimits.rhMin + 30),
+        naturalFrequencyFront: clampNF(suspensionLimits.nfMin + 1.0), naturalFrequencyRear: clampNF(suspensionLimits.nfMin + 1.2),
         antiRollBarFront: 7, antiRollBarRear: 6,
         damperExpansionFront: suspensionLimits.dampExpMin + 10, damperExpansionRear: suspensionLimits.dampExpMin + 10,
         damperCompressionFront: suspensionLimits.dampCompMin + 15, damperCompressionRear: suspensionLimits.dampCompMin + 15,
@@ -184,8 +201,8 @@ export default function TuningApp() {
         differentialInitialTorque: 20, differentialBraking: 55,
       },
       balanced: {
-        rideHeightFront: suspensionLimits.rhMin + 20, rideHeightRear: suspensionLimits.rhMin + 20,
-        naturalFrequencyFront: suspensionLimits.nfMin + 0.5, naturalFrequencyRear: suspensionLimits.nfMin + 0.5,
+        rideHeightFront: clampRH(suspensionLimits.rhMin + 20), rideHeightRear: clampRH(suspensionLimits.rhMin + 20),
+        naturalFrequencyFront: clampNF(suspensionLimits.nfMin + 0.5), naturalFrequencyRear: clampNF(suspensionLimits.nfMin + 0.5),
         antiRollBarFront: 5, antiRollBarRear: 5,
         damperExpansionFront: suspensionLimits.dampExpMin + 5, damperExpansionRear: suspensionLimits.dampExpMin + 5,
         damperCompressionFront: suspensionLimits.dampCompMin + 5, damperCompressionRear: suspensionLimits.dampCompMin + 5,

@@ -429,11 +429,11 @@ export default function TuningApp() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightFront} mm</span>
-                          <Slider value={[tuningSetup.rideHeightFront || rideHeightLimits.min]} onValueChange={([v]) => updateTuning('rideHeightFront', v)} min={rideHeightLimits.min} max={rideHeightLimits.max} step={1} />
+                          <Slider value={[tuningSetup.rideHeightFront || suspensionLimits.rhMin]} onValueChange={([v]) => updateTuning('rideHeightFront', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
                         </div>
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightRear} mm</span>
-                          <Slider value={[tuningSetup.rideHeightRear || rideHeightLimits.min]} onValueChange={([v]) => updateTuning('rideHeightRear', v)} min={rideHeightLimits.min} max={rideHeightLimits.max} step={1} />
+                          <Slider value={[tuningSetup.rideHeightRear || suspensionLimits.rhMin]} onValueChange={([v]) => updateTuning('rideHeightRear', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
                         </div>
                       </div>
                     </div>

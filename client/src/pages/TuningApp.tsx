@@ -161,14 +161,16 @@ export default function TuningApp() {
     // Helper to clamp values to car-specific limits
     const clampNF = (val: number) => Math.min(Math.max(val, suspensionLimits.nfMin), suspensionLimits.nfMax);
     const clampRH = (val: number) => Math.min(Math.max(val, suspensionLimits.rhMin), suspensionLimits.rhMax);
+    const clampExp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampExpMin), suspensionLimits.dampExpMax);
+    const clampComp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampCompMin), suspensionLimits.dampCompMax);
 
     const presets = {
       acceleration: {
         rideHeightFront: clampRH(suspensionLimits.rhMin + 10), rideHeightRear: clampRH(suspensionLimits.rhMin + 15),
         naturalFrequencyFront: clampNF(suspensionLimits.nfMin + 0.8), naturalFrequencyRear: clampNF(suspensionLimits.nfMin + 0.8),
         antiRollBarFront: 3, antiRollBarRear: 3,
-        damperExpansionFront: suspensionLimits.dampExpMin + 12, damperExpansionRear: suspensionLimits.dampExpMin + 12,
-        damperCompressionFront: suspensionLimits.dampCompMin + 12, damperCompressionRear: suspensionLimits.dampCompMin + 12,
+        damperExpansionFront: clampExp(suspensionLimits.dampExpMin + 12), damperExpansionRear: clampExp(suspensionLimits.dampExpMin + 12),
+        damperCompressionFront: clampComp(suspensionLimits.dampCompMin + 12), damperCompressionRear: clampComp(suspensionLimits.dampCompMin + 12),
         camberFront: 1.5, camberRear: 1.0,
         toeInFront: -0.05, toeInRear: 0.10,
         downforceFront: hasFrontSplitter ? 350 : 50,
@@ -179,8 +181,8 @@ export default function TuningApp() {
         rideHeightFront: clampRH(suspensionLimits.rhMin), rideHeightRear: clampRH(suspensionLimits.rhMin),
         naturalFrequencyFront: clampNF(suspensionLimits.nfMax), naturalFrequencyRear: clampNF(suspensionLimits.nfMax),
         antiRollBarFront: 8, antiRollBarRear: 8,
-        damperExpansionFront: suspensionLimits.dampExpMax - 2, damperExpansionRear: suspensionLimits.dampExpMax - 2,
-        damperCompressionFront: suspensionLimits.dampCompMax - 2, damperCompressionRear: suspensionLimits.dampCompMax - 2,
+        damperExpansionFront: clampExp(suspensionLimits.dampExpMax - 2), damperExpansionRear: clampExp(suspensionLimits.dampExpMax - 2),
+        damperCompressionFront: clampComp(suspensionLimits.dampCompMax - 2), damperCompressionRear: clampComp(suspensionLimits.dampCompMax - 2),
         camberFront: 3.5, camberRear: 3.0,
         toeInFront: -0.15, toeInRear: 0.25,
         downforceFront: hasFrontSplitter ? 750 : 200,
@@ -191,26 +193,27 @@ export default function TuningApp() {
         rideHeightFront: clampRH(suspensionLimits.rhMin + 20), rideHeightRear: clampRH(suspensionLimits.rhMin + 30),
         naturalFrequencyFront: clampNF(suspensionLimits.nfMin + 1.0), naturalFrequencyRear: clampNF(suspensionLimits.nfMin + 1.2),
         antiRollBarFront: 7, antiRollBarRear: 6,
-        damperExpansionFront: suspensionLimits.dampExpMin + 10, damperExpansionRear: suspensionLimits.dampExpMin + 10,
-        damperCompressionFront: suspensionLimits.dampCompMin + 15, damperCompressionRear: suspensionLimits.dampCompMin + 15,
+        damperExpansionFront: clampExp(suspensionLimits.dampExpMin + 10), damperExpansionRear: clampExp(suspensionLimits.dampExpMin + 10),
+        damperCompressionFront: clampComp(suspensionLimits.dampCompMin + 15), damperCompressionRear: clampComp(suspensionLimits.dampCompMin + 15),
         camberFront: 2.5, camberRear: 2.0,
         toeInFront: 0.05, toeInRear: 0.15,
         downforceFront: hasFrontSplitter ? 500 : 150,
         downforceRear: hasRearWing ? 800 : 200,
         brakeBalance: -2,
-        differentialInitialTorque: 20, differentialBraking: 55,
+        differentialInitialTorque: 20, differentialAcceleration: 30, differentialBraking: 55,
       },
       balanced: {
         rideHeightFront: clampRH(suspensionLimits.rhMin + 20), rideHeightRear: clampRH(suspensionLimits.rhMin + 20),
         naturalFrequencyFront: clampNF(suspensionLimits.nfMin + 0.5), naturalFrequencyRear: clampNF(suspensionLimits.nfMin + 0.5),
         antiRollBarFront: 5, antiRollBarRear: 5,
-        damperExpansionFront: suspensionLimits.dampExpMin + 5, damperExpansionRear: suspensionLimits.dampExpMin + 5,
-        damperCompressionFront: suspensionLimits.dampCompMin + 5, damperCompressionRear: suspensionLimits.dampCompMin + 5,
+        damperExpansionFront: clampExp(suspensionLimits.dampExpMin + 5), damperExpansionRear: clampExp(suspensionLimits.dampExpMin + 5),
+        damperCompressionFront: clampComp(suspensionLimits.dampCompMin + 5), damperCompressionRear: clampComp(suspensionLimits.dampCompMin + 5),
         camberFront: 2.0, camberRear: 1.5,
         toeInFront: 0.00, toeInRear: 0.15,
         downforceFront: hasFrontSplitter ? 400 : 120,
         downforceRear: hasRearWing ? 650 : 150,
         brakeBalance: 0,
+        brakeSystemType: 'racing',
         differentialInitialTorque: 10, differentialAcceleration: 45, differentialBraking: 20,
       },
       track: {},
@@ -222,7 +225,27 @@ export default function TuningApp() {
   const applyTrackPreset = (preset: 'aggressive' | 'balanced' | 'conservative') => {
     if (selectedCircuit) {
       setTuningMode('track');
-      setTuningSetup(prev => ({ ...prev, ...selectedCircuit.tuningPresets[preset] }));
+      const trackData = selectedCircuit.tuningPresets[preset];
+      
+      // Helper to clamp values to car-specific limits
+      const clampNF = (val: number) => Math.min(Math.max(val, suspensionLimits.nfMin), suspensionLimits.nfMax);
+      const clampRH = (val: number) => Math.min(Math.max(val, suspensionLimits.rhMin), suspensionLimits.rhMax);
+      const clampExp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampExpMin), suspensionLimits.dampExpMax);
+      const clampComp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampCompMin), suspensionLimits.dampCompMax);
+
+      const clampedData = {
+        ...trackData,
+        rideHeightFront: trackData.rideHeightFront ? clampRH(trackData.rideHeightFront) : undefined,
+        rideHeightRear: trackData.rideHeightRear ? clampRH(trackData.rideHeightRear) : undefined,
+        naturalFrequencyFront: trackData.naturalFrequencyFront ? clampNF(trackData.naturalFrequencyFront) : undefined,
+        naturalFrequencyRear: trackData.naturalFrequencyRear ? clampNF(trackData.naturalFrequencyRear) : undefined,
+        damperExpansionFront: trackData.damperExpansionFront ? clampExp(trackData.damperExpansionFront) : undefined,
+        damperExpansionRear: trackData.damperExpansionRear ? clampExp(trackData.damperExpansionRear) : undefined,
+        damperCompressionFront: trackData.damperCompressionFront ? clampComp(trackData.damperCompressionFront) : undefined,
+        damperCompressionRear: trackData.damperCompressionRear ? clampComp(trackData.damperCompressionRear) : undefined,
+      };
+
+      setTuningSetup(prev => ({ ...prev, ...clampedData }));
     }
   };
 
@@ -445,12 +468,12 @@ export default function TuningApp() {
                       <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Ride Height (F/R)</label></div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightFront} mm</span>
-                          <Slider value={[tuningSetup.rideHeightFront || suspensionLimits.rhMin]} onValueChange={([v]) => updateTuning('rideHeightFront', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightFront}mm</span>
+                          <Slider value={[Math.min(Math.max(tuningSetup.rideHeightFront || 100, suspensionLimits.rhMin), suspensionLimits.rhMax)]} onValueChange={([v]) => updateTuning('rideHeightFront', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
                         </div>
                         <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightRear} mm</span>
-                          <Slider value={[tuningSetup.rideHeightRear || suspensionLimits.rhMin]} onValueChange={([v]) => updateTuning('rideHeightRear', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightRear}mm</span>
+                          <Slider value={[Math.min(Math.max(tuningSetup.rideHeightRear || 100, suspensionLimits.rhMin), suspensionLimits.rhMax)]} onValueChange={([v]) => updateTuning('rideHeightRear', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
                         </div>
                       </div>
                     </div>
@@ -481,15 +504,29 @@ export default function TuningApp() {
                     </div>
                     {/* Natural Frequency */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Natural Frequency (F/R) [{suspensionLimits.nfMin.toFixed(1)}-{suspensionLimits.nfMax.toFixed(1)}]</label></div>
+                      <div className="flex justify-between items-end">
+                        <label className="text-xs font-bold uppercase text-muted-foreground">Natural Frequency (F/R) [{suspensionLimits.nfMin.toFixed(2)}-{suspensionLimits.nfMax.toFixed(2)}]</label>
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.naturalFrequencyFront?.toFixed(2)} Hz</span>
-                          <Slider value={[tuningSetup.naturalFrequencyFront || 2.0]} onValueChange={([v]) => updateTuning('naturalFrequencyFront', v)} min={suspensionLimits.nfMin} max={suspensionLimits.nfMax} step={0.01} />
+                          <Slider 
+                            value={[Math.min(Math.max(tuningSetup.naturalFrequencyFront || 2.0, suspensionLimits.nfMin), suspensionLimits.nfMax)]} 
+                            onValueChange={([v]) => updateTuning('naturalFrequencyFront', v)} 
+                            min={suspensionLimits.nfMin} 
+                            max={suspensionLimits.nfMax} 
+                            step={0.01} 
+                          />
                         </div>
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.naturalFrequencyRear?.toFixed(2)} Hz</span>
-                          <Slider value={[tuningSetup.naturalFrequencyRear || 2.0]} onValueChange={([v]) => updateTuning('naturalFrequencyRear', v)} min={suspensionLimits.nfMin} max={suspensionLimits.nfMax} step={0.01} />
+                          <Slider 
+                            value={[Math.min(Math.max(tuningSetup.naturalFrequencyRear || 2.0, suspensionLimits.nfMin), suspensionLimits.nfMax)]} 
+                            onValueChange={([v]) => updateTuning('naturalFrequencyRear', v)} 
+                            min={suspensionLimits.nfMin} 
+                            max={suspensionLimits.nfMax} 
+                            step={0.01} 
+                          />
                         </div>
                       </div>
                     </div>
@@ -622,7 +659,6 @@ export default function TuningApp() {
                           <SelectItem value="racing-hard">Racing: Hard</SelectItem>
                           <SelectItem value="racing-medium">Racing: Medium</SelectItem>
                           <SelectItem value="racing-soft">Racing: Soft</SelectItem>
-                          <SelectItem value="racing-slick">Racing: Slick</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] mono-num text-primary">Grip Multiplier: {tuningSetup.tireGripCoefficient?.toFixed(2)}</p>

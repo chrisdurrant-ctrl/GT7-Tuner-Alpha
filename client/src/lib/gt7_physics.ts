@@ -104,7 +104,6 @@ export const TIRE_GRIP_COEFFICIENTS = {
   'racing-hard': 1.10,
   'racing-medium': 1.20,
   'racing-soft': 1.30,
-  'racing-slick': 1.40,
 };
 
 // Brake system multipliers

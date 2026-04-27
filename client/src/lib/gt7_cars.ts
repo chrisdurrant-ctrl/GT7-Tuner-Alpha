@@ -25,9 +25,12 @@ export interface GT7Car {
   price_type: string;
   version: string | null;
   version_num?: number | null;
+  category: string;
   tuningLimits?: {
     rideHeight?: [number, number];
     naturalFrequency?: [number, number];
+    damperExpansion?: [number, number];
+    damperCompression?: [number, number];
   };
 }
 

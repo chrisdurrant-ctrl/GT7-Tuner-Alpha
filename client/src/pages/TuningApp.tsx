@@ -300,7 +300,7 @@ export default function TuningApp() {
                   <label className="text-xs text-zinc-500 mb-1 block">Custom BHP</label>
                   <Input 
                     type="number" 
-                    placeholder={selectedCar?.bhp.toString()} 
+                    placeholder={selectedCar?.bhp?.toString() || '0'} 
                     className="bg-zinc-950 border-zinc-800 h-8"
                     onChange={(e) => setCustomBhp(e.target.value ? parseInt(e.target.value) : null)}
                   />
@@ -309,7 +309,7 @@ export default function TuningApp() {
                   <label className="text-xs text-zinc-500 mb-1 block">Custom Weight (KG)</label>
                   <Input 
                     type="number" 
-                    placeholder={selectedCar?.weight.toString()} 
+                    placeholder={selectedCar?.weight?.toString() || '0'} 
                     className="bg-zinc-950 border-zinc-800 h-8"
                     onChange={(e) => setCustomWeight(e.target.value ? parseInt(e.target.value) : null)}
                   />

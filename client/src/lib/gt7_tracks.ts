@@ -29,40 +29,43 @@ export interface TrackRegion {
   }[];
 }
 
-// Default presets for template
+// Default presets for template - Now matching the full TuningSetup structure
 const DEFAULT_TUNING: Record<'aggressive' | 'balanced' | 'conservative', Partial<TuningSetup>> = {
   aggressive: {
     rideHeightFront: 90, rideHeightRear: 95,
-    naturalFrequencyFront: 3.2, naturalFrequencyRear: 3.2,
+    naturalFrequencyFront: 3.2, naturalFrequencyRear: 3.3,
     antiRollBarFront: 7, antiRollBarRear: 7,
     damperExpansionFront: 45, damperExpansionRear: 45,
     damperCompressionFront: 35, damperCompressionRear: 35,
     camberFront: 3.0, camberRear: 2.5,
     toeInFront: -0.10, toeInRear: 0.20,
     downforceFront: 400, downforceRear: 600,
-    differentialInitialTorque: 15, differentialAcceleration: 50, differentialBraking: 30
+    differentialInitialTorque: 15, differentialAcceleration: 50, differentialBraking: 30,
+    brakeBalance: 2
   },
   balanced: {
     rideHeightFront: 100, rideHeightRear: 105,
-    naturalFrequencyFront: 2.5, naturalFrequencyRear: 2.5,
+    naturalFrequencyFront: 2.5, naturalFrequencyRear: 2.6,
     antiRollBarFront: 5, antiRollBarRear: 5,
     damperExpansionFront: 35, damperExpansionRear: 35,
     damperCompressionFront: 25, damperCompressionRear: 25,
     camberFront: 2.0, camberRear: 1.5,
     toeInFront: 0.00, toeInRear: 0.15,
     downforceFront: 250, downforceRear: 400,
-    differentialInitialTorque: 10, differentialAcceleration: 45, differentialBraking: 20
+    differentialInitialTorque: 10, differentialAcceleration: 40, differentialBraking: 20,
+    brakeBalance: 0
   },
   conservative: {
     rideHeightFront: 110, rideHeightRear: 115,
-    naturalFrequencyFront: 2.0, naturalFrequencyRear: 2.0,
+    naturalFrequencyFront: 2.0, naturalFrequencyRear: 2.1,
     antiRollBarFront: 3, antiRollBarRear: 3,
     damperExpansionFront: 32, damperExpansionRear: 32,
     damperCompressionFront: 22, damperCompressionRear: 22,
     camberFront: 1.5, camberRear: 1.0,
     toeInFront: 0.05, toeInRear: 0.10,
     downforceFront: 150, downforceRear: 250,
-    differentialInitialTorque: 8, differentialAcceleration: 40, differentialBraking: 15
+    differentialInitialTorque: 8, differentialAcceleration: 30, differentialBraking: 15,
+    brakeBalance: -1
   }
 };
 
@@ -172,7 +175,7 @@ export const TRACK_REGIONS: TrackRegion[] = [
             tuningPresets: DEFAULT_TUNING
           },
           {
-            id: "Lago Maggiore",
+            id: "lago-maggiore",
             name: "Autodromo de Lago Maggiore",
             layouts: [
               { id: "lago-full", name: "Full Course" },
@@ -337,18 +340,6 @@ export const TRACK_REGIONS: TrackRegion[] = [
             name: "Northern Isle Speedway",
             layouts: [{ id: "northern-oval", name: "Half-Mile Oval" }],
             tuningPresets: DEFAULT_TUNING
-          },
-          {
-            id: "colorado",
-            name: "Colorado Springs (Dirt)",
-            layouts: [{ id: "colorado-lake", name: "Lake" }],
-            tuningPresets: DEFAULT_TUNING
-          },
-          {
-            id: "fishermans-ranch",
-            name: "Fishermans Ranch (Dirt)",
-            layouts: [{ id: "fishermans-full", name: "Full Course" }],
-            tuningPresets: DEFAULT_TUNING
           }
         ]
       }
@@ -361,9 +352,9 @@ export const TRACK_REGIONS: TrackRegion[] = [
         name: "Australia",
         circuits: [
           {
-            id: "bathurst",
-            name: "Mount Panorama Motor Racing Circuit",
-            layouts: [{ id: "bathurst-full", name: "Full Course" }],
+            id: "mount-panorama",
+            name: "Mount Panorama",
+            layouts: [{ id: "panorama-full", name: "Full Course" }],
             tuningPresets: DEFAULT_TUNING
           }
         ]
@@ -384,8 +375,8 @@ export const TRACK_REGIONS: TrackRegion[] = [
             id: "fuji",
             name: "Fuji Speedway",
             layouts: [
-              { id: "fuji-f", name: "Fuji Speedway F" },
-              { id: "fuji-gt", name: "Fuji Speedway GT" }
+              { id: "fuji-full", name: "Full Course" },
+              { id: "fuji-short", name: "Short Course" }
             ],
             tuningPresets: DEFAULT_TUNING
           },
@@ -399,44 +390,22 @@ export const TRACK_REGIONS: TrackRegion[] = [
             id: "autopolis",
             name: "Autopolis International Racing Course",
             layouts: [
-              { id: "auto-full", name: "Full Course" },
-              { id: "auto-shortcut", name: "Shortcut Course" }
+              { id: "autop-full", name: "Full Course" },
+              { id: "autop-shortcut", name: "Shortcut Course" }
             ],
             tuningPresets: DEFAULT_TUNING
           },
           {
-            id: "tokyo",
+            id: "tokyo-expressway",
             name: "Tokyo Expressway",
             layouts: [
-              { id: "tokyo-central-clock", name: "Central Clockwise" },
-              { id: "tokyo-central-counter", name: "Central Counter-Clockwise" },
-              { id: "tokyo-east-clock", name: "East Clockwise" },
-              { id: "tokyo-east-counter", name: "East Counter-Clockwise" },
-              { id: "tokyo-south-clock", name: "South Clockwise" },
-              { id: "tokyo-south-counter", name: "South Counter-Clockwise" }
+              { id: "tokyo-central-cw", name: "Central Clockwise" },
+              { id: "tokyo-central-ccw", name: "Central Counter-Clockwise" },
+              { id: "tokyo-east-cw", name: "East Clockwise" },
+              { id: "tokyo-east-ccw", name: "East Counter-Clockwise" },
+              { id: "tokyo-south-cw", name: "South Clockwise" },
+              { id: "tokyo-south-ccw", name: "South Counter-Clockwise" }
             ],
-            tuningPresets: DEFAULT_TUNING
-          },
-          {
-            id: "kyoto",
-            name: "Kyoto Driving Park",
-            layouts: [
-              { id: "kyoto-yamagiwa", name: "Yamagiwa" },
-              { id: "kyoto-miyabi", name: "Miyabi" },
-              { id: "kyoto-yamagiwa-miyabi", name: "Yamagiwa + Miyabi" }
-            ],
-            tuningPresets: DEFAULT_TUNING
-          },
-          {
-            id: "high-speed-ring",
-            name: "High Speed Ring",
-            layouts: [{ id: "hsr-full", name: "Full Course" }],
-            tuningPresets: DEFAULT_TUNING
-          },
-          {
-            id: "broad-bean",
-            name: "Broad Bean Raceway",
-            layouts: [{ id: "broad-full", name: "Full Course" }],
             tuningPresets: DEFAULT_TUNING
           }
         ]
@@ -445,4 +414,4 @@ export const TRACK_REGIONS: TrackRegion[] = [
   }
 ];
 
-export const ALL_CIRCUITS: TrackCircuit[] = TRACK_REGIONS.flatMap(r => r.locations.flatMap(l => l.circuits));
+export const ALL_CIRCUITS = TRACK_REGIONS.flatMap(r => r.locations.flatMap(l => l.circuits));

@@ -28,10 +28,10 @@ export interface TuningSetup {
   antiRollBarRear: number; // 1-10
   naturalFrequencyFront: number; // Hz
   naturalFrequencyRear: number; // Hz
-  damperExpansionFront: number; // 1-10 (rebound)
-  damperExpansionRear: number; // 1-10 (rebound)
-  damperCompressionFront: number; // 1-10
-  damperCompressionRear: number; // 1-10
+  damperExpansionFront: number; // 30-50 (rebound)
+  damperExpansionRear: number; // 30-50 (rebound)
+  damperCompressionFront: number; // 20-40
+  damperCompressionRear: number; // 20-40
   camberFront: number; // degrees
   camberRear: number; // degrees
   toeInFront: number; // degrees
@@ -40,15 +40,17 @@ export interface TuningSetup {
   // Aerodynamics
   downforceFront: number; // lbs
   downforceRear: number; // lbs
+  frontSplitterFitted: boolean;
+  rearWingFitted: boolean;
   
   // Brakes
   brakeSystemType: 'normal' | 'sports' | 'racing' | 'carbon';
   brakeBalance: number; // -5 to 5 (Front to Rear)
   
   // Differential
-  differentialInitialTorque: number; // 0-100
-  differentialAcceleration: number; // 0-100
-  differentialBraking: number; // 0-100
+  differentialInitialTorque: number; // 5-60
+  differentialAcceleration: number; // 5-60
+  differentialBraking: number; // 5-60
   
   // Transmission
   gearRatios: number[]; // Multipliers for each gear
@@ -57,7 +59,7 @@ export interface TuningSetup {
   // Tires
   tirePressureFront: number; // psi
   tirePressureRear: number; // psi
-  tireGripCoefficient: number; // 0.8-1.2 based on tire type
+  tireGripCoefficient: number; // 0.8-1.3 based on tire type
 }
 
 export interface PerformanceMetrics {
@@ -93,7 +95,7 @@ const AIR_DENSITY = 1.225; // kg/m³
 const DRAG_COEFFICIENT = 0.3; // Average for sports cars
 const FRONTAL_AREA = 2.2; // m² Average
 
-// Tire grip physics
+// Tire grip physics - Based on Flux89 / GT7 reality
 export const TIRE_GRIP_COEFFICIENTS = {
   'comfort-hard': 0.75,
   'comfort-medium': 0.80,
@@ -101,9 +103,9 @@ export const TIRE_GRIP_COEFFICIENTS = {
   'sports-hard': 0.90,
   'sports-medium': 0.95,
   'sports-soft': 1.00,
-  'racing-hard': 1.10,
-  'racing-medium': 1.20,
-  'racing-soft': 1.30,
+  'racing-hard': 1.15,
+  'racing-medium': 1.25,
+  'racing-soft': 1.35,
 };
 
 // Brake system multipliers
@@ -137,7 +139,6 @@ export function calculatePowerToWeightRatio(power: number, weight: number): numb
 
 /**
  * Calculate 0-60 mph acceleration time
- * Based on power-to-weight ratio and tire grip
  */
 export function calculate0to60Time(
   power: number,
@@ -147,16 +148,14 @@ export function calculate0to60Time(
 ): number {
   const pwRatio = calculatePowerToWeightRatio(power, weight);
   
-  // Base formula: time = sqrt(2 * distance / acceleration)
-  // 0-60 mph = 0-26.82 m/s
-  // Adjusted for tire grip and differential effectiveness
-  const gripFactor = (tireGrip / 1.0) * (1 + differentialAccel / 200);
+  // Adjusted for tire grip and differential effectiveness (5-60 scale)
+  const gripFactor = (tireGrip / 1.0) * (1 + (differentialAccel - 5) / 500);
   const acceleration = (pwRatio * GRAVITY * gripFactor) / 2;
   
   const distance = 26.82 * 26.82 / (2 * acceleration);
   const time = Math.sqrt(2 * distance / acceleration);
   
-  return Math.max(2.0, time); // Minimum 2 seconds
+  return Math.max(1.8, time); // Minimum realistic time
 }
 
 /**
@@ -169,13 +168,13 @@ export function calculate0to100Time(
   differentialAccel: number
 ): number {
   const pwRatio = calculatePowerToWeightRatio(power, weight);
-  const gripFactor = (tireGrip / 1.0) * (1 + differentialAccel / 200);
+  const gripFactor = (tireGrip / 1.0) * (1 + (differentialAccel - 5) / 500);
   const acceleration = (pwRatio * GRAVITY * gripFactor) / 2.5;
   
   const distance = 44.7 * 44.7 / (2 * acceleration);
   const time = Math.sqrt(2 * distance / acceleration);
   
-  return Math.max(3.5, time);
+  return Math.max(3.2, time);
 }
 
 /**
@@ -188,13 +187,13 @@ export function calculate0to200Time(
   differentialAccel: number
 ): number {
   const pwRatio = calculatePowerToWeightRatio(power, weight);
-  const gripFactor = (tireGrip / 1.0) * (1 + differentialAccel / 200);
+  const gripFactor = (tireGrip / 1.0) * (1 + (differentialAccel - 5) / 500);
   const acceleration = (pwRatio * GRAVITY * gripFactor) / 3;
   
   const distance = 55.56 * 55.56 / (2 * acceleration);
   const time = Math.sqrt(2 * distance / acceleration);
   
-  return Math.max(5.0, time);
+  return Math.max(4.5, time);
 }
 
 /**
@@ -209,14 +208,15 @@ export function calculateBrakingDistance100to0(
 ): number {
   const initialSpeed = 27.78;
   const brakePower = BRAKE_SYSTEMS[brakeSystem].multiplier;
-  const gripFactor = (tireGrip / 1.0) * (1 + differentialBraking / 200);
-  const deceleration = (brakePower * GRAVITY * gripFactor) / 1.5;
+  // Differential braking helps stability, slight effect on distance
+  const gripFactor = (tireGrip / 1.0) * (1 + (differentialBraking - 5) / 1000);
+  const deceleration = (brakePower * GRAVITY * gripFactor) / 1.4;
   
-  // Convert -5..5 to a factor (0 is optimal, deviations reduce efficiency slightly)
-  const balanceFactor = 1.0 - (Math.abs(brakeBalance) / 25);
+  // Brake balance effect (-5 to 5). 0 is optimal for distance in this model.
+  const balanceFactor = 1.0 - (Math.abs(brakeBalance) / 50);
   
   const distance = (initialSpeed * initialSpeed) / (2 * deceleration * balanceFactor);
-  return Math.max(20, distance);
+  return Math.max(18, distance);
 }
 
 /**
@@ -224,33 +224,33 @@ export function calculateBrakingDistance100to0(
  */
 export function calculateBrakingDistance200to0(
   weight: number,
-  brakePower: number,
+  brakeSystem: keyof typeof BRAKE_SYSTEMS,
   brakeBalance: number,
   tireGrip: number,
   differentialBraking: number
 ): number {
-  // Speed: 200 km/h = 55.56 m/s
   const initialSpeed = 55.56;
-  
-  const gripFactor = (tireGrip / 1.0) * (1 + differentialBraking / 200);
-  const deceleration = (brakePower * GRAVITY * gripFactor) / 1.5;
-  const balanceFactor = 0.8 + (Math.abs(brakeBalance - 50) / 100) * 0.4;
+  const brakePower = BRAKE_SYSTEMS[brakeSystem].multiplier;
+  const gripFactor = (tireGrip / 1.0) * (1 + (differentialBraking - 5) / 1000);
+  const deceleration = (brakePower * GRAVITY * gripFactor) / 1.4;
+  const balanceFactor = 1.0 - (Math.abs(brakeBalance) / 50);
   
   const distance = (initialSpeed * initialSpeed) / (2 * deceleration * balanceFactor);
   
-  return Math.max(50, distance);
+  return Math.max(45, distance);
 }
 
 /**
  * Calculate braking deceleration in g-force
  */
 export function calculateBrakingDeceleration(
-  brakePower: number,
+  brakeSystem: keyof typeof BRAKE_SYSTEMS,
   tireGrip: number,
   differentialBraking: number
 ): number {
-  const gripFactor = (tireGrip / 1.0) * (1 + differentialBraking / 200);
-  const deceleration = (brakePower * gripFactor) / 1.5;
+  const brakePower = BRAKE_SYSTEMS[brakeSystem].multiplier;
+  const gripFactor = (tireGrip / 1.0) * (1 + (differentialBraking - 5) / 1000);
+  const deceleration = (brakePower * gripFactor) / 1.4;
   
   return deceleration;
 }
@@ -268,22 +268,21 @@ export function calculateLateralAcceleration(
   antiRollBarRear: number,
   tireGrip: number
 ): number {
-  // Total downforce in kg (1 lbs ≈ 0.453592 kg)
+  // Total downforce in kg
   const totalDownforceKg = (downforceFront + downforceRear) * 0.453592;
   
-  // Camber angle effect on grip (0-3 degrees optimal)
-  const camberEffect = 1 + (Math.min(camberFront, camberRear) / 5) * 0.2;
+  // Camber effect (Optimal around 2.0-3.0 for racing tires)
+  const camberEffect = 1 + (Math.min(camberFront, 3.0) / 10) * 0.15;
   
-  // Anti-roll bar stiffness effect (reduces roll, improves grip)
-  const arbEffect = 1 + ((antiRollBarFront + antiRollBarRear) / 20) * 0.15;
+  // ARB effect
+  const arbEffect = 1 + ((antiRollBarFront + antiRollBarRear) / 20) * 0.1;
   
-  // Total grip = (downforce + tire grip) / weight
+  // Total grip
   const totalGrip = (totalDownforceKg + weight * tireGrip) / weight;
   
-  // Lateral acceleration = grip * g * effects
-  const lateralAccel = totalGrip * GRAVITY * camberEffect * arbEffect;
+  const lateralAccel = totalGrip * camberEffect * arbEffect;
   
-  return Math.min(lateralAccel / GRAVITY, 2.5); // Cap at 2.5g
+  return Math.min(lateralAccel, 3.5); // Cap at 3.5g for extreme downforce cars
 }
 
 /**
@@ -293,10 +292,7 @@ export function calculateCorneringSpeed(
   lateralAcceleration: number,
   cornerRadius: number = 100 // meters
 ): number {
-  // v = sqrt(a * r)
   const speed = Math.sqrt(lateralAcceleration * GRAVITY * cornerRadius);
-  
-  // Convert m/s to km/h
   return speed * 3.6;
 }
 
@@ -309,23 +305,14 @@ export function calculateTopSpeed(
   downforceFront: number,
   downforceRear: number
 ): number {
-  // Convert power to watts (1 BHP ≈ 745.7 watts)
   const powerWatts = power * 745.7;
-  
-  // Total downforce increases drag
   const totalDownforceKg = (downforceFront + downforceRear) * 0.453592;
   
-  // Drag force = 0.5 * air_density * drag_coefficient * frontal_area * v²
-  // At top speed, power = drag force * velocity
-  // power = 0.5 * rho * Cd * A * v³
-  // v = (power / (0.5 * rho * Cd * A))^(1/3)
-  
-  const dragCoeff = DRAG_COEFFICIENT * (1 + totalDownforceKg / (weight * 10));
+  // Increased downforce = increased drag
+  const dragCoeff = DRAG_COEFFICIENT * (1 + totalDownforceKg / (weight * 5));
   const dragFactor = 0.5 * AIR_DENSITY * dragCoeff * FRONTAL_AREA;
   
   const topSpeedMs = Math.pow(powerWatts / dragFactor, 1 / 3);
-  
-  // Convert m/s to km/h
   return topSpeedMs * 3.6;
 }
 
@@ -337,236 +324,92 @@ export function calculateAccelerationRating(
   time0to100: number,
   time0to200: number
 ): number {
-  // Reference times for 100 rating (very fast cars)
-  const ref0to60 = 2.5;
-  const ref0to100 = 5.0;
-  const ref0to200 = 10.0;
+  const ref0to60 = 2.0;
+  const ref0to100 = 4.5;
+  const ref0to200 = 9.0;
   
-  const score60 = Math.max(0, 100 - (time0to60 / ref0to60) * 50);
-  const score100 = Math.max(0, 100 - (time0to100 / ref0to100) * 50);
-  const score200 = Math.max(0, 100 - (time0to200 / ref0to200) * 50);
+  const score60 = Math.max(0, 100 - (time0to60 - ref0to60) * 20);
+  const score100 = Math.max(0, 100 - (time0to100 - ref0to100) * 10);
+  const score200 = Math.max(0, 100 - (time0to200 - ref0to200) * 5);
   
-  return (score60 + score100 + score200) / 3;
+  return (score60 * 0.4 + score100 * 0.3 + score200 * 0.3);
 }
 
 /**
  * Calculate braking rating (0-100)
  */
 export function calculateBrakingRating(
-  distance100to0: number,
-  distance200to0: number
+  distance100: number,
+  deceleration: number
 ): number {
-  // Reference distances for 100 rating (excellent brakes)
-  const ref100to0 = 30;
-  const ref200to0 = 80;
+  const refDistance = 25.0;
+  const refDecel = 1.5;
   
-  const score100 = Math.max(0, 100 - (distance100to0 / ref100to0) * 50);
-  const score200 = Math.max(0, 100 - (distance200to0 / ref200to0) * 50);
+  const scoreDist = Math.max(0, 100 - (distance100 - refDistance) * 4);
+  const scoreDecel = Math.min(100, (deceleration / refDecel) * 100);
   
-  return (score100 + score200) / 2;
+  return (scoreDist * 0.6 + scoreDecel * 0.4);
 }
 
 /**
  * Calculate cornering rating (0-100)
  */
-export function calculateCorneringRating(lateralAcceleration: number): number {
-  // Reference lateral acceleration for 100 rating
-  const refLateral = 2.0;
+export function calculateCorneringRating(
+  lateralAccel: number,
+  corneringSpeed: number
+): number {
+  const refAccel = 2.0;
+  const refSpeed = 150;
   
-  const score = Math.max(0, Math.min(100, (lateralAcceleration / refLateral) * 100));
+  const scoreAccel = Math.min(100, (lateralAccel / refAccel) * 100);
+  const scoreSpeed = Math.min(100, (corneringSpeed / refSpeed) * 100);
   
-  return score;
+  return (scoreAccel * 0.7 + scoreSpeed * 0.3);
 }
 
 /**
  * Calculate top speed rating (0-100)
  */
-export function calculateTopSpeedRating(topSpeed: number): number {
-  // Reference top speed for 100 rating
-  const refTopSpeed = 350; // km/h
-  
-  const score = Math.max(0, Math.min(100, (topSpeed / refTopSpeed) * 100));
-  
-  return score;
+export function calculateTopSpeedRating(speed: number): number {
+  const refSpeed = 400;
+  return Math.min(100, (speed / refSpeed) * 100);
 }
 
 /**
- * Calculate balance score (how well-rounded the setup is)
- */
-export function calculateBalanceScore(
-  accelRating: number,
-  brakingRating: number,
-  corneringRating: number,
-  topSpeedRating: number
-): number {
-  // Calculate standard deviation to measure balance
-  const ratings = [accelRating, brakingRating, corneringRating, topSpeedRating];
-  const mean = ratings.reduce((a, b) => a + b) / ratings.length;
-  const variance = ratings.reduce((a, b) => a + Math.pow(b - mean, 2)) / ratings.length;
-  const stdDev = Math.sqrt(variance);
-  
-  // Lower standard deviation = better balance
-  // Max std dev = 50, min = 0
-  const balanceScore = Math.max(0, 100 - (stdDev / 50) * 100);
-  
-  return balanceScore;
-}
-
-/**
- * Calculate overall performance rating
+ * Calculate overall rating (0-100)
  */
 export function calculateOverallRating(
-  accelRating: number,
-  brakingRating: number,
-  corneringRating: number,
-  topSpeedRating: number
+  accel: number,
+  brake: number,
+  corner: number,
+  topSpeed: number
 ): number {
-  // Weighted average (cornering is most important for lap times)
-  const weights = {
-    accel: 0.2,
-    braking: 0.25,
-    cornering: 0.35,
-    topSpeed: 0.2,
-  };
-  
-  const overall =
-    accelRating * weights.accel +
-    brakingRating * weights.braking +
-    corneringRating * weights.cornering +
-    topSpeedRating * weights.topSpeed;
-  
-  return Math.min(100, overall);
+  return (accel * 0.3 + brake * 0.2 + corner * 0.3 + topSpeed * 0.2);
 }
 
 /**
- * Calculate all performance metrics from a tuning setup
+ * Calculate balance score (0-100)
+ * Higher is better, 100 means perfect balance
  */
-export function calculatePerformanceMetrics(
-  basePower: number,
-  baseWeight: number,
-  setup: Partial<TuningSetup>
-): PerformanceMetrics {
-  // Apply defaults
-  const s = {
-    powerBHP: basePower,
-    powerRestriction: 100,
-    weightKg: baseWeight,
-    ballastKg: 0,
-    ballastPosition: 0,
-    rideHeightFront: 100,
-    rideHeightRear: 100,
-    antiRollBarFront: 5,
-    antiRollBarRear: 5,
-    naturalFrequencyFront: 2.0,
-    naturalFrequencyRear: 2.0,
-    camberFront: 2.0,
-    camberRear: 1.5,
-    toeInFront: 0.2,
-    toeInRear: 0.1,
-    downforceFront: 100,
-    downforceRear: 150,
-    brakePowerMultiplier: 1.35,
-    brakeBalance: 55,
-    differentialInitialTorque: 50,
-    differentialAcceleration: 60,
-    differentialBraking: 50,
-    gearRatios: [3.5, 2.5, 1.8, 1.3, 1.0, 0.8],
-    finalDriveRatio: 3.5,
-    tirePressureFront: 30,
-    tirePressureRear: 30,
-    tireGripCoefficient: 1.1,
-    ...setup,
-  };
+export function calculateBalanceScore(setup: TuningSetup): number {
+  let score = 100;
   
-  // Calculate effective values
-  const effectivePower = calculateEffectivePower(s.powerBHP, s.powerRestriction);
-  const totalWeight = calculateTotalWeight(s.weightKg, s.ballastKg);
+  // Ride height rake (ideal is 0 to +10mm rear)
+  const rake = setup.rideHeightRear - setup.rideHeightFront;
+  if (rake < 0) score -= Math.abs(rake) * 2; // Negative rake is bad
+  if (rake > 20) score -= (rake - 20) * 1; // Excessive rake
   
-  // Acceleration metrics
-  const accel0to60 = calculate0to60Time(
-    effectivePower,
-    totalWeight,
-    s.tireGripCoefficient,
-    s.differentialAcceleration
-  );
-  const accel0to100 = calculate0to100Time(
-    effectivePower,
-    totalWeight,
-    s.tireGripCoefficient,
-    s.differentialAcceleration
-  );
-  const accel0to200 = calculate0to200Time(
-    effectivePower,
-    totalWeight,
-    s.tireGripCoefficient,
-    s.differentialAcceleration
-  );
-  const accelRating = calculateAccelerationRating(accel0to60, accel0to100, accel0to200);
+  // Downforce balance (ideal is roughly 1:2 to 1:3 front to rear)
+  if (setup.downforceFront > 0 && setup.downforceRear > 0) {
+    const ratio = setup.downforceRear / setup.downforceFront;
+    if (ratio < 1.5) score -= (1.5 - ratio) * 20;
+    if (ratio > 4.0) score -= (ratio - 4.0) * 10;
+  }
   
-  // Braking metrics
-  const brake100to0 = calculateBrakingDistance100to0(
-    totalWeight,
-    s.brakePowerMultiplier,
-    s.brakeBalance,
-    s.tireGripCoefficient,
-    s.differentialBraking
-  );
-  const brake200to0 = calculateBrakingDistance200to0(
-    totalWeight,
-    s.brakePowerMultiplier,
-    s.brakeBalance,
-    s.tireGripCoefficient,
-    s.differentialBraking
-  );
-  const brakeDecel = calculateBrakingDeceleration(
-    s.brakePowerMultiplier,
-    s.tireGripCoefficient,
-    s.differentialBraking
-  );
-  const brakingRating = calculateBrakingRating(brake100to0, brake200to0);
+  // Natural frequency balance (Rear should be slightly stiffer)
+  const nfDiff = setup.naturalFrequencyRear - setup.naturalFrequencyFront;
+  if (nfDiff < 0) score -= Math.abs(nfDiff) * 15;
+  if (nfDiff > 0.5) score -= (nfDiff - 0.5) * 10;
   
-  // Cornering metrics
-  const lateralAccel = calculateLateralAcceleration(
-    s.downforceFront,
-    s.downforceRear,
-    totalWeight,
-    s.camberFront,
-    s.camberRear,
-    s.antiRollBarFront,
-    s.antiRollBarRear,
-    s.tireGripCoefficient
-  );
-  const corneringSpeed = calculateCorneringSpeed(lateralAccel);
-  const corneringRating = calculateCorneringRating(lateralAccel);
-  
-  // Top speed
-  const topSpeed = calculateTopSpeed(
-    effectivePower,
-    totalWeight,
-    s.downforceFront,
-    s.downforceRear
-  );
-  const topSpeedRating = calculateTopSpeedRating(topSpeed);
-  
-  // Overall ratings
-  const balanceScore = calculateBalanceScore(accelRating, brakingRating, corneringRating, topSpeedRating);
-  const overallRating = calculateOverallRating(accelRating, brakingRating, corneringRating, topSpeedRating);
-  
-  return {
-    acceleration0to60: accel0to60,
-    acceleration0to100: accel0to100,
-    acceleration0to200: accel0to200,
-    accelerationRating: accelRating,
-    brakingDistance100to0: brake100to0,
-    brakingDistance200to0: brake200to0,
-    brakingDeceleration: brakeDecel,
-    brakingRating: brakingRating,
-    lateralAcceleration: lateralAccel,
-    corneringSpeed: corneringSpeed,
-    corneringRating: corneringRating,
-    topSpeed: topSpeed,
-    topSpeedRating: topSpeedRating,
-    overallRating: overallRating,
-    balanceScore: balanceScore,
-  };
+  return Math.max(0, score);
 }

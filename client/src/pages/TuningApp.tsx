@@ -100,6 +100,8 @@ export default function TuningApp() {
   // Dynamic Suspension Limits based on Car Type and Upgrade
   const suspensionLimits = useMemo(() => {
     const isRaceCar = selectedCar?.category?.includes('Gr.') || selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
+    const isVisionGT = selectedCar?.model.includes('VGT') || selectedCar?.model.includes('Vision Gran Turismo');
+    const isSupercar = selectedCar?.model.includes('Ferrari') || selectedCar?.model.includes('Lamborghini') || selectedCar?.model.includes('Porsche') || selectedCar?.model.includes('McLaren');
     
     // Default ranges based on upgrade
     let rhMin = 80, rhMax = 200;
@@ -631,21 +633,21 @@ export default function TuningApp() {
                           <Slider 
                             value={[tuningSetup.downforceFront || 100]} 
                             onValueChange={([v]) => updateTuning('downforceFront', v)} 
-                            min={0} 
-                            max={hasFrontSplitter ? 800 : 500} 
+                            min={isRaceCar || isVisionGT ? 200 : 0} 
+                            max={isRaceCar || isVisionGT ? 1200 : (hasFrontSplitter ? 800 : 500)} 
                             step={5} 
                           />
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between text-[10px] mono-num text-primary">
-                            <span>Rear {hasRearWing && <span className="text-[8px] text-muted-foreground ml-1">(Custom Wing Active)</span>}</span>
+                            <span>Rear {(hasRearWing || isRaceCar) && <span className="text-[8px] text-muted-foreground ml-1">({isRaceCar ? 'Race Wing' : 'Custom Wing'} Active)</span>}</span>
                             <span>{tuningSetup.downforceRear} lbs</span>
                           </div>
                           <Slider 
                             value={[tuningSetup.downforceRear || 150]} 
                             onValueChange={([v]) => updateTuning('downforceRear', v)} 
-                            min={0} 
-                            max={hasRearWing ? 1200 : 500} 
+                            min={isRaceCar || isVisionGT ? 400 : 0} 
+                            max={isRaceCar || isVisionGT ? 2000 : (hasRearWing ? 1200 : 500)} 
                             step={5} 
                           />
                         </div>

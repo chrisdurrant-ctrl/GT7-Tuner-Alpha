@@ -99,7 +99,7 @@ export default function TuningApp() {
 
   // Dynamic Suspension Limits based on Car Type and Upgrade
   const suspensionLimits = useMemo(() => {
-    const isRaceCar = selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
+    const isRaceCar = selectedCar?.category?.includes('Gr.') || selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
     
     // Default ranges based on upgrade
     let rhMin = 80, rhMax = 200;
@@ -164,6 +164,8 @@ export default function TuningApp() {
     const clampExp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampExpMin), suspensionLimits.dampExpMax);
     const clampComp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampCompMin), suspensionLimits.dampCompMax);
 
+    const isRaceCar = selectedCar?.category?.includes('Gr.') || selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
+    
     const presets = {
       acceleration: {
         rideHeightFront: clampRH(suspensionLimits.rhMin + 10), rideHeightRear: clampRH(suspensionLimits.rhMin + 15),
@@ -173,8 +175,9 @@ export default function TuningApp() {
         damperCompressionFront: clampComp(suspensionLimits.dampCompMin + 12), damperCompressionRear: clampComp(suspensionLimits.dampCompMin + 12),
         camberFront: 1.5, camberRear: 1.0,
         toeInFront: -0.05, toeInRear: 0.10,
-        downforceFront: hasFrontSplitter ? 350 : 50,
-        downforceRear: hasRearWing ? 550 : 75,
+        downforceFront: isRaceCar ? 400 : (hasFrontSplitter ? 350 : 50),
+        downforceRear: isRaceCar ? 700 : (hasRearWing ? 550 : 75),
+        brakeBalance: 1,
         differentialInitialTorque: 15, differentialAcceleration: 55, differentialBraking: 35,
       },
       cornering: {
@@ -185,8 +188,9 @@ export default function TuningApp() {
         damperCompressionFront: clampComp(suspensionLimits.dampCompMax - 2), damperCompressionRear: clampComp(suspensionLimits.dampCompMax - 2),
         camberFront: 3.5, camberRear: 3.0,
         toeInFront: -0.15, toeInRear: 0.25,
-        downforceFront: hasFrontSplitter ? 750 : 200,
-        downforceRear: hasRearWing ? 1100 : 300,
+        downforceFront: isRaceCar ? 600 : (hasFrontSplitter ? 750 : 200),
+        downforceRear: isRaceCar ? 1000 : (hasRearWing ? 1100 : 300),
+        brakeBalance: 2,
         differentialInitialTorque: 10, differentialAcceleration: 35, differentialBraking: 25,
       },
       braking: {
@@ -197,8 +201,8 @@ export default function TuningApp() {
         damperCompressionFront: clampComp(suspensionLimits.dampCompMin + 15), damperCompressionRear: clampComp(suspensionLimits.dampCompMin + 15),
         camberFront: 2.5, camberRear: 2.0,
         toeInFront: 0.05, toeInRear: 0.15,
-        downforceFront: hasFrontSplitter ? 500 : 150,
-        downforceRear: hasRearWing ? 800 : 200,
+        downforceFront: isRaceCar ? 500 : (hasFrontSplitter ? 500 : 150),
+        downforceRear: isRaceCar ? 800 : (hasRearWing ? 800 : 200),
         brakeBalance: -2,
         differentialInitialTorque: 20, differentialAcceleration: 30, differentialBraking: 55,
       },
@@ -210,8 +214,8 @@ export default function TuningApp() {
         damperCompressionFront: clampComp(suspensionLimits.dampCompMin + 5), damperCompressionRear: clampComp(suspensionLimits.dampCompMin + 5),
         camberFront: 2.0, camberRear: 1.5,
         toeInFront: 0.00, toeInRear: 0.15,
-        downforceFront: hasFrontSplitter ? 400 : 120,
-        downforceRear: hasRearWing ? 650 : 150,
+        downforceFront: isRaceCar ? 350 : (hasFrontSplitter ? 400 : 120),
+        downforceRear: isRaceCar ? 600 : (hasRearWing ? 650 : 150),
         brakeBalance: 0,
         brakeSystemType: 'racing',
         differentialInitialTorque: 10, differentialAcceleration: 45, differentialBraking: 20,
@@ -322,25 +326,26 @@ export default function TuningApp() {
   ] : [];
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b border-border bg-card p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center text-white font-bold">GT</div>
-            <h1 className="text-xl font-bold tracking-tighter italic uppercase">Tuning Simulator</h1>
+    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
+      <header className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h1 className="text-4xl font-black italic tracking-tighter text-primary uppercase leading-none mb-2">GT7 Tuner Alpha</h1>
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.3em] font-bold">Performance Simulator v2.0</p>
+        </div>
+        <div className="flex gap-4">
+          <div className="text-right">
+            <p className="text-[10px] uppercase text-muted-foreground font-bold mb-1">Current Rating</p>
+            <p className="text-3xl font-black mono-num text-primary">{metrics?.overallRating.toFixed(0) || '00'}</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Overall Rating</p>
-              <p className="text-2xl font-black mono-num text-primary leading-none">{metrics?.overallRating.toFixed(1)}</p>
-            </div>
+          <div className="w-px h-12 bg-border"></div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase text-muted-foreground font-bold mb-1">Balance Score</p>
+            <p className="text-3xl font-black mono-num text-blue-500">{metrics?.balanceScore.toFixed(0) || '00'}</p>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto p-4 md:p-8">
-        {/* Selection Area */}
+      <main className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Car Selection */}
           <Card className="bg-card border-border p-5">
@@ -355,6 +360,7 @@ export default function TuningApp() {
                 <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Manufacturer" /></SelectTrigger>
                 <SelectContent className="max-h-80">{manufacturers.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
               </Select>
+              
               <Select value={selectedModel} onValueChange={(val) => {
                 setSelectedModel(val);
                 setSelectedCar(GT7_CARS.find(car => car.manufacturer === selectedManufacturer && car.model === val) || null);
@@ -462,10 +468,21 @@ export default function TuningApp() {
               {/* Suspension Tab */}
               <TabsContent value="suspension">
                 <Card className="p-6 bg-card border-border">
+                  <div className="flex justify-end mb-6">
+                    <Select value={suspensionType} onValueChange={(v: any) => setSuspensionType(v)}>
+                      <SelectTrigger className="h-8 w-40 text-xs uppercase"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard Suspension</SelectItem>
+                        <SelectItem value="street">Street Suspension</SelectItem>
+                        <SelectItem value="sports">Sports Suspension</SelectItem>
+                        <SelectItem value="racing">Racing Suspension</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                    {/* Ride Height */}
+                    {/* 1. Ride Height */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Ride Height (F/R)</label></div>
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Body Height Adjustment (F/R) [{suspensionLimits.rhMin}-{suspensionLimits.rhMax}]</label></div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightFront}mm</span>
@@ -477,32 +494,49 @@ export default function TuningApp() {
                         </div>
                       </div>
                     </div>
-                    {/* Anti-Roll Bar */}
+                    {/* 2. Anti-Roll Bar */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-bold uppercase text-muted-foreground">Ride Height (F/R) [{suspensionLimits.rhMin}-{suspensionLimits.rhMax}]</label>
-                        <Select value={suspensionType} onValueChange={(v: any) => setSuspensionType(v)}>
-                          <SelectTrigger className="h-6 w-24 text-[9px] uppercase"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="street">Street</SelectItem>
-                            <SelectItem value="sports">Sports</SelectItem>
-                            <SelectItem value="racing">Racing</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Anti-Roll Bar (F/R) [1-10]</label></div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightFront}mm</span>
-                          <Slider value={[tuningSetup.rideHeightFront || 100]} onValueChange={([v]) => updateTuning('rideHeightFront', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.antiRollBarFront}</span>
+                          <Slider value={[tuningSetup.antiRollBarFront || 5]} onValueChange={([v]) => updateTuning('antiRollBarFront', v)} min={1} max={10} step={1} />
                         </div>
                         <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.rideHeightRear}mm</span>
-                          <Slider value={[tuningSetup.rideHeightRear || 100]} onValueChange={([v]) => updateTuning('rideHeightRear', v)} min={suspensionLimits.rhMin} max={suspensionLimits.rhMax} step={1} />
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.antiRollBarRear}</span>
+                          <Slider value={[tuningSetup.antiRollBarRear || 5]} onValueChange={([v]) => updateTuning('antiRollBarRear', v)} min={1} max={10} step={1} />
                         </div>
                       </div>
                     </div>
-                    {/* Natural Frequency */}
+                    {/* 3. Dampers Compression */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Damping Ratio: Compression (F/R) [{suspensionLimits.dampCompMin}-{suspensionLimits.dampCompMax}]</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperCompressionFront}</span>
+                          <Slider value={[tuningSetup.damperCompressionFront || 25]} onValueChange={([v]) => updateTuning('damperCompressionFront', v)} min={suspensionLimits.dampCompMin} max={suspensionLimits.dampCompMax} step={1} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperCompressionRear}</span>
+                          <Slider value={[tuningSetup.damperCompressionRear || 25]} onValueChange={([v]) => updateTuning('damperCompressionRear', v)} min={suspensionLimits.dampCompMin} max={suspensionLimits.dampCompMax} step={1} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* 4. Dampers Expansion */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Damping Ratio: Expansion (F/R) [{suspensionLimits.dampExpMin}-{suspensionLimits.dampExpMax}]</label></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperExpansionFront}</span>
+                          <Slider value={[tuningSetup.damperExpansionFront || 35]} onValueChange={([v]) => updateTuning('damperExpansionFront', v)} min={suspensionLimits.dampExpMin} max={suspensionLimits.dampExpMax} step={1} />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperExpansionRear}</span>
+                          <Slider value={[tuningSetup.damperExpansionRear || 35]} onValueChange={([v]) => updateTuning('damperExpansionRear', v)} min={suspensionLimits.dampExpMin} max={suspensionLimits.dampExpMax} step={1} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* 5. Natural Frequency */}
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
                         <label className="text-xs font-bold uppercase text-muted-foreground">Natural Frequency (F/R) [{suspensionLimits.nfMin.toFixed(2)}-{suspensionLimits.nfMax.toFixed(2)}]</label>
@@ -530,9 +564,9 @@ export default function TuningApp() {
                         </div>
                       </div>
                     </div>
-                    {/* Camber Angle */}
+                    {/* 6. Negative Camber Angle */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Camber Angle (F/R)</label></div>
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Negative Camber Angle (F/R) [0.0-10.0]</label></div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.camberFront?.toFixed(1)}°</span>
@@ -544,9 +578,9 @@ export default function TuningApp() {
                         </div>
                       </div>
                     </div>
-                    {/* Toe Angle */}
+                    {/* 7. Toe Angle */}
                     <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Toe Angle (F/R)</label></div>
+                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Toe Angle (F/R) [-1.00-1.00]</label></div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.toeInFront?.toFixed(2)}°</span>
@@ -555,34 +589,6 @@ export default function TuningApp() {
                         <div className="space-y-2">
                           <span className="text-[10px] mono-num text-primary">{tuningSetup.toeInRear?.toFixed(2)}°</span>
                           <Slider value={[tuningSetup.toeInRear || 0]} onValueChange={([v]) => updateTuning('toeInRear', v)} min={-1.0} max={1.0} step={0.01} />
-                        </div>
-                      </div>
-                    </div>
-                    {/* Dampers Expansion */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Damper Expansion (F/R) [{suspensionLimits.dampExpMin}-{suspensionLimits.dampExpMax}]</label></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperExpansionFront}</span>
-                          <Slider value={[tuningSetup.damperExpansionFront || 35]} onValueChange={([v]) => updateTuning('damperExpansionFront', v)} min={suspensionLimits.dampExpMin} max={suspensionLimits.dampExpMax} step={1} />
-                        </div>
-                        <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperExpansionRear}</span>
-                          <Slider value={[tuningSetup.damperExpansionRear || 35]} onValueChange={([v]) => updateTuning('damperExpansionRear', v)} min={suspensionLimits.dampExpMin} max={suspensionLimits.dampExpMax} step={1} />
-                        </div>
-                      </div>
-                    </div>
-                    {/* Dampers Compression */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-end"><label className="text-xs font-bold uppercase text-muted-foreground">Damper Compression (F/R) [{suspensionLimits.dampCompMin}-{suspensionLimits.dampCompMax}]</label></div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperCompressionFront}</span>
-                          <Slider value={[tuningSetup.damperCompressionFront || 25]} onValueChange={([v]) => updateTuning('damperCompressionFront', v)} min={suspensionLimits.dampCompMin} max={suspensionLimits.dampCompMax} step={1} />
-                        </div>
-                        <div className="space-y-2">
-                          <span className="text-[10px] mono-num text-primary">{tuningSetup.damperCompressionRear}</span>
-                          <Slider value={[tuningSetup.damperCompressionRear || 25]} onValueChange={([v]) => updateTuning('damperCompressionRear', v)} min={suspensionLimits.dampCompMin} max={suspensionLimits.dampCompMax} step={1} />
                         </div>
                       </div>
                     </div>
@@ -706,7 +712,7 @@ export default function TuningApp() {
                     <div className="space-y-4">
                       <label className="text-xs font-bold uppercase text-muted-foreground">Brake Balance (F -5 to R 5)</label>
                       <div className="flex justify-between text-[10px] mono-num text-primary">
-                        <span>F {tuningSetup.brakeBalance && tuningSetup.brakeBalance < 0 ? tuningSetup.brakeBalance : 0}</span>
+                        <span>F {tuningSetup.brakeBalance && tuningSetup.brakeBalance < 0 ? Math.abs(tuningSetup.brakeBalance) : 0}</span>
                         <span>R {tuningSetup.brakeBalance && tuningSetup.brakeBalance > 0 ? tuningSetup.brakeBalance : 0}</span>
                       </div>
                       <Slider value={[tuningSetup.brakeBalance || 0]} onValueChange={([v]) => updateTuning('brakeBalance', v)} min={-5} max={5} step={1} />

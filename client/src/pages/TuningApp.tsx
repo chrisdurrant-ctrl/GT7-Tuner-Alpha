@@ -88,6 +88,10 @@ export default function TuningApp() {
   const [customWeight, setCustomWeight] = useState<number | null>(null);
   const [tuningMode, setTuningMode] = useState<'balanced' | 'acceleration' | 'cornering' | 'braking' | 'track'>('balanced');
 
+  const isRaceCar = useMemo(() => selectedCar?.category?.includes('Gr.') || selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car'), [selectedCar]);
+  const isVisionGT = useMemo(() => selectedCar?.model.includes('VGT') || selectedCar?.model.includes('Vision Gran Turismo'), [selectedCar]);
+  const isSupercar = useMemo(() => selectedCar?.model.includes('Ferrari') || selectedCar?.model.includes('Lamborghini') || selectedCar?.model.includes('Porsche') || selectedCar?.model.includes('McLaren'), [selectedCar]);
+
   // --- EFFECTS & MEMOS ---
   const manufacturers = useMemo(() => Array.from(new Set(GT7_CARS.map(car => car.manufacturer))).sort(), []);
   const models = useMemo(() => GT7_CARS.filter(car => car.manufacturer === selectedManufacturer).map(car => car.model).sort(), [selectedManufacturer]);
@@ -99,10 +103,6 @@ export default function TuningApp() {
 
   // Dynamic Suspension Limits based on Car Type and Upgrade
   const suspensionLimits = useMemo(() => {
-    const isRaceCar = selectedCar?.category?.includes('Gr.') || selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
-    const isVisionGT = selectedCar?.model.includes('VGT') || selectedCar?.model.includes('Vision Gran Turismo');
-    const isSupercar = selectedCar?.model.includes('Ferrari') || selectedCar?.model.includes('Lamborghini') || selectedCar?.model.includes('Porsche') || selectedCar?.model.includes('McLaren');
-    
     // Default ranges based on upgrade
     let rhMin = 80, rhMax = 200;
     let nfMin = 1.0, nfMax = 3.0;
@@ -166,8 +166,6 @@ export default function TuningApp() {
     const clampExp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampExpMin), suspensionLimits.dampExpMax);
     const clampComp = (val: number) => Math.min(Math.max(val, suspensionLimits.dampCompMin), suspensionLimits.dampCompMax);
 
-    const isRaceCar = selectedCar?.category?.includes('Gr.') || selectedCar?.model.includes('Gr.') || selectedCar?.model.includes('GT3') || selectedCar?.model.includes('Race Car');
-    
     const presets = {
       acceleration: {
         rideHeightFront: clampRH(suspensionLimits.rhMin + 10), rideHeightRear: clampRH(suspensionLimits.rhMin + 15),

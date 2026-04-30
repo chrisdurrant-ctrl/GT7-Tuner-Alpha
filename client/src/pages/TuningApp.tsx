@@ -88,6 +88,19 @@ export default function TuningApp() {
   const [customWeight, setCustomWeight] = useState<string>('');
   const [tuningMode, setTuningMode] = useState<'balanced' | 'acceleration' | 'cornering' | 'braking' | 'track'>('balanced');
 
+  // Manual Limits for Master Calibration
+  const [manualLimits, setManualLimits] = useState<{
+    rideHeight: [number | null, number | null],
+    naturalFrequency: [number | null, number | null],
+    downforceFront: [number | null, number | null],
+    downforceRear: [number | null, number | null]
+  }>({
+    rideHeight: [null, null],
+    naturalFrequency: [null, null],
+    downforceFront: [null, null],
+    downforceRear: [null, null]
+  });
+
   // --- MEMOS ---
   const carCategory = useMemo((): CarCategory => {
     if (!selectedCar) return 'road';
@@ -102,8 +115,29 @@ export default function TuningApp() {
   }, [selectedCar]);
 
   const limits = useMemo(() => {
-    return getDynamicLimits(carCategory, suspensionType, selectedCar?.tuningLimits);
-  }, [carCategory, suspensionType, selectedCar]);
+    const baseLimits = getDynamicLimits(carCategory, suspensionType, selectedCar?.tuningLimits);
+    
+    // Override with manual limits if provided
+    return {
+      ...baseLimits,
+      rideHeight: [
+        manualLimits.rideHeight[0] !== null ? manualLimits.rideHeight[0] : baseLimits.rideHeight[0],
+        manualLimits.rideHeight[1] !== null ? manualLimits.rideHeight[1] : baseLimits.rideHeight[1]
+      ] as [number, number],
+      naturalFrequency: [
+        manualLimits.naturalFrequency[0] !== null ? manualLimits.naturalFrequency[0] : baseLimits.naturalFrequency[0],
+        manualLimits.naturalFrequency[1] !== null ? manualLimits.naturalFrequency[1] : baseLimits.naturalFrequency[1]
+      ] as [number, number],
+      downforceFront: [
+        manualLimits.downforceFront[0] !== null ? manualLimits.downforceFront[0] : (tuningSetup.frontSplitterFitted ? 150 : 50),
+        manualLimits.downforceFront[1] !== null ? manualLimits.downforceFront[1] : (tuningSetup.frontSplitterFitted ? 800 : 500)
+      ] as [number, number],
+      downforceRear: [
+        manualLimits.downforceRear[0] !== null ? manualLimits.downforceRear[0] : (tuningSetup.rearWingFitted ? 250 : 100),
+        manualLimits.downforceRear[1] !== null ? manualLimits.downforceRear[1] : (tuningSetup.rearWingFitted ? 1200 : 600)
+      ] as [number, number]
+    };
+  }, [carCategory, suspensionType, selectedCar, manualLimits, tuningSetup.frontSplitterFitted, tuningSetup.rearWingFitted]);
 
   const manufacturers = useMemo(() => Array.from(new Set(GT7_CARS.map(car => car.manufacturer))).sort(), []);
   const models = useMemo(() => GT7_CARS.filter(car => car.manufacturer === selectedManufacturer).map(car => car.model).sort(), [selectedManufacturer]);
@@ -173,8 +207,8 @@ export default function TuningApp() {
       newSetup.differentialInitialTorque = lsdInit;
       newSetup.differentialAcceleration = lsdAccel;
       newSetup.differentialBraking = lsdBraking;
-      newSetup.downforceFront = isAero ? 300 : 100;
-      newSetup.downforceRear = isAero ? 500 : 150;
+      newSetup.downforceFront = clamp(isAero ? limits.downforceFront[0] + (limits.downforceFront[1] - limits.downforceFront[0]) * 0.4 : 100, limits.downforceFront);
+      newSetup.downforceRear = clamp(isAero ? limits.downforceRear[0] + (limits.downforceRear[1] - limits.downforceRear[0]) * 0.4 : 150, limits.downforceRear);
     } else if (mode === 'acceleration') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0] + 10, limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 20, limits.rideHeight);
@@ -183,8 +217,8 @@ export default function TuningApp() {
       newSetup.antiRollBarFront = 4; newSetup.antiRollBarRear = 6;
       newSetup.differentialAcceleration = clamp(lsdAccel + 15, [5, 60]);
       newSetup.brakeBalance = 1;
-      newSetup.downforceFront = isAero ? 150 : 50;
-      newSetup.downforceRear = isAero ? 250 : 75;
+      newSetup.downforceFront = clamp(isAero ? limits.downforceFront[0] + (limits.downforceFront[1] - limits.downforceFront[0]) * 0.2 : 50, limits.downforceFront);
+      newSetup.downforceRear = clamp(isAero ? limits.downforceRear[0] + (limits.downforceRear[1] - limits.downforceRear[0]) * 0.2 : 75, limits.downforceRear);
     } else if (mode === 'cornering') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0], limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 5, limits.rideHeight);
@@ -193,8 +227,8 @@ export default function TuningApp() {
       newSetup.antiRollBarFront = 7; newSetup.antiRollBarRear = 4;
       newSetup.camberFront = 3.0; newSetup.camberRear = 2.0;
       newSetup.brakeBalance = 2;
-      newSetup.downforceFront = isAero ? 700 : 200;
-      newSetup.downforceRear = isAero ? 1000 : 300;
+      newSetup.downforceFront = clamp(isAero ? limits.downforceFront[0] + (limits.downforceFront[1] - limits.downforceFront[0]) * 0.8 : 200, limits.downforceFront);
+      newSetup.downforceRear = clamp(isAero ? limits.downforceRear[0] + (limits.downforceRear[1] - limits.downforceRear[0]) * 0.8 : 300, limits.downforceRear);
     } else if (mode === 'braking') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0] + 15, limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 15, limits.rideHeight);
@@ -202,8 +236,8 @@ export default function TuningApp() {
       newSetup.naturalFrequencyRear = clamp(nfBase + nfRange * 0.5, limits.naturalFrequency);
       newSetup.differentialBraking = clamp(lsdBraking + 15, [5, 60]);
       newSetup.brakeBalance = -2;
-      newSetup.downforceFront = isAero ? 500 : 150;
-      newSetup.downforceRear = isAero ? 800 : 200;
+      newSetup.downforceFront = clamp(isAero ? limits.downforceFront[0] + (limits.downforceFront[1] - limits.downforceFront[0]) * 0.6 : 150, limits.downforceFront);
+      newSetup.downforceRear = clamp(isAero ? limits.downforceRear[0] + (limits.downforceRear[1] - limits.downforceRear[0]) * 0.6 : 200, limits.downforceRear);
     }
 
     setTuningSetup(newSetup);
@@ -227,6 +261,8 @@ export default function TuningApp() {
     if (newSetup.rideHeightRear) newSetup.rideHeightRear = clamp(newSetup.rideHeightRear, limits.rideHeight);
     if (newSetup.naturalFrequencyFront) newSetup.naturalFrequencyFront = clamp(newSetup.naturalFrequencyFront, limits.naturalFrequency);
     if (newSetup.naturalFrequencyRear) newSetup.naturalFrequencyRear = clamp(newSetup.naturalFrequencyRear, limits.naturalFrequency);
+    if (newSetup.downforceFront) newSetup.downforceFront = clamp(newSetup.downforceFront, limits.downforceFront);
+    if (newSetup.downforceRear) newSetup.downforceRear = clamp(newSetup.downforceRear, limits.downforceRear);
     
     setTuningSetup(newSetup);
   };
@@ -356,6 +392,83 @@ export default function TuningApp() {
                 />
               </div>
               </div>
+            </div>
+          </Card>
+
+          <Card className="bg-zinc-900 border-zinc-800 p-6 shadow-2xl">
+            <h2 className="text-red-600 text-xl mb-4 border-b border-red-900/50 pb-2 italic font-black tracking-tighter">Master Calibration</h2>
+            <p className="text-[10px] text-zinc-500 mb-4 uppercase">Input your car's in-game limits for perfect setups</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Ride Height (Min/Max)</label>
+                  <div className="flex gap-1">
+                    <Input 
+                      type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.rideHeight[0] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, rideHeight: [e.target.value ? parseInt(e.target.value) : null, prev.rideHeight[1]] }))}
+                    />
+                    <Input 
+                      type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.rideHeight[1] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, rideHeight: [prev.rideHeight[0], e.target.value ? parseInt(e.target.value) : null] }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Nat. Freq. (Min/Max)</label>
+                  <div className="flex gap-1">
+                    <Input 
+                      type="number" step="0.01" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.naturalFrequency[0] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, naturalFrequency: [e.target.value ? parseFloat(e.target.value) : null, prev.naturalFrequency[1]] }))}
+                    />
+                    <Input 
+                      type="number" step="0.01" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.naturalFrequency[1] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, naturalFrequency: [prev.naturalFrequency[0], e.target.value ? parseFloat(e.target.value) : null] }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Aero Front (Min/Max)</label>
+                  <div className="flex gap-1">
+                    <Input 
+                      type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.downforceFront[0] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceFront: [e.target.value ? parseInt(e.target.value) : null, prev.downforceFront[1]] }))}
+                    />
+                    <Input 
+                      type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.downforceFront[1] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceFront: [prev.downforceFront[0], e.target.value ? parseInt(e.target.value) : null] }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Aero Rear (Min/Max)</label>
+                  <div className="flex gap-1">
+                    <Input 
+                      type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.downforceRear[0] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceRear: [e.target.value ? parseInt(e.target.value) : null, prev.downforceRear[1]] }))}
+                    />
+                    <Input 
+                      type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
+                      value={manualLimits.downforceRear[1] || ''}
+                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceRear: [prev.downforceRear[0], e.target.value ? parseInt(e.target.value) : null] }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-[10px] h-7 border-red-900/30 text-red-500 hover:bg-red-900/10"
+                onClick={() => setManualLimits({ rideHeight: [null, null], naturalFrequency: [null, null], downforceFront: [null, null], downforceRear: [null, null] })}
+              >Reset Calibration</Button>
             </div>
           </Card>
 
@@ -760,8 +873,8 @@ export default function TuningApp() {
                     </div>
                     <Slider 
                       value={[tuningSetup.downforceFront || 100]} 
-                      min={tuningSetup.frontSplitterFitted ? 150 : 50} 
-                      max={tuningSetup.frontSplitterFitted ? 800 : 500} 
+                      min={limits.downforceFront[0]} 
+                      max={limits.downforceFront[1]} 
                       step={5}
                       onValueChange={([val]) => updateTuning('downforceFront', val)}
                     />
@@ -773,8 +886,8 @@ export default function TuningApp() {
                     </div>
                     <Slider 
                       value={[tuningSetup.downforceRear || 150]} 
-                      min={tuningSetup.rearWingFitted ? 250 : 100} 
-                      max={tuningSetup.rearWingFitted ? 1200 : 600} 
+                      min={limits.downforceRear[0]} 
+                      max={limits.downforceRear[1]} 
                       step={5}
                       onValueChange={([val]) => updateTuning('downforceRear', val)}
                     />

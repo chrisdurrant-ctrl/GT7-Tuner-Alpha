@@ -84,8 +84,8 @@ export default function TuningApp() {
   });
 
   const [suspensionType, setSuspensionType] = useState<'standard' | 'street' | 'sports' | 'racing'>('standard');
-  const [customBhp, setCustomBhp] = useState<number | null>(null);
-  const [customWeight, setCustomWeight] = useState<number | null>(null);
+  const [customBhp, setCustomBhp] = useState<string>('');
+  const [customWeight, setCustomWeight] = useState<string>('');
   const [tuningMode, setTuningMode] = useState<'balanced' | 'acceleration' | 'cornering' | 'braking' | 'track'>('balanced');
 
   // --- MEMOS ---
@@ -150,6 +150,17 @@ export default function TuningApp() {
 
     const newSetup: Partial<TuningSetup> = { ...tuningSetup };
 
+    // Auto-adjust Aero Parts based on mode
+    if (mode === 'cornering') {
+      newSetup.frontSplitterFitted = true;
+      newSetup.rearWingFitted = true;
+    } else if (mode === 'acceleration') {
+      newSetup.frontSplitterFitted = false;
+      newSetup.rearWingFitted = false;
+    }
+
+    const isAero = newSetup.frontSplitterFitted || newSetup.rearWingFitted || carCategory !== 'road';
+
     if (mode === 'balanced') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0] + 5, limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 10, limits.rideHeight);
@@ -162,6 +173,8 @@ export default function TuningApp() {
       newSetup.differentialInitialTorque = lsdInit;
       newSetup.differentialAcceleration = lsdAccel;
       newSetup.differentialBraking = lsdBraking;
+      newSetup.downforceFront = isAero ? 300 : 100;
+      newSetup.downforceRear = isAero ? 500 : 150;
     } else if (mode === 'acceleration') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0] + 10, limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 20, limits.rideHeight);
@@ -170,6 +183,8 @@ export default function TuningApp() {
       newSetup.antiRollBarFront = 4; newSetup.antiRollBarRear = 6;
       newSetup.differentialAcceleration = clamp(lsdAccel + 15, [5, 60]);
       newSetup.brakeBalance = 1;
+      newSetup.downforceFront = isAero ? 150 : 50;
+      newSetup.downforceRear = isAero ? 250 : 75;
     } else if (mode === 'cornering') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0], limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 5, limits.rideHeight);
@@ -178,6 +193,8 @@ export default function TuningApp() {
       newSetup.antiRollBarFront = 7; newSetup.antiRollBarRear = 4;
       newSetup.camberFront = 3.0; newSetup.camberRear = 2.0;
       newSetup.brakeBalance = 2;
+      newSetup.downforceFront = isAero ? 700 : 200;
+      newSetup.downforceRear = isAero ? 1000 : 300;
     } else if (mode === 'braking') {
       newSetup.rideHeightFront = clamp(limits.rideHeight[0] + 15, limits.rideHeight);
       newSetup.rideHeightRear = clamp(limits.rideHeight[0] + 15, limits.rideHeight);
@@ -185,8 +202,32 @@ export default function TuningApp() {
       newSetup.naturalFrequencyRear = clamp(nfBase + nfRange * 0.5, limits.naturalFrequency);
       newSetup.differentialBraking = clamp(lsdBraking + 15, [5, 60]);
       newSetup.brakeBalance = -2;
+      newSetup.downforceFront = isAero ? 500 : 150;
+      newSetup.downforceRear = isAero ? 800 : 200;
     }
 
+    setTuningSetup(newSetup);
+  };
+
+  const applyTrackPreset = (type: 'aggressive' | 'balanced' | 'conservative') => {
+    if (!selectedCircuit) return;
+    setTuningMode('track');
+    
+    const preset = selectedCircuit.tuningPresets[type];
+    const clamp = (val: number, range: [number, number]) => Math.min(Math.max(val, range[0]), range[1]);
+    
+    const newSetup = { ...tuningSetup, ...preset };
+    
+    // Auto-adjust Aero Parts for track presets
+    newSetup.frontSplitterFitted = true;
+    newSetup.rearWingFitted = true;
+    
+    // Ensure all values are within car-specific limits
+    if (newSetup.rideHeightFront) newSetup.rideHeightFront = clamp(newSetup.rideHeightFront, limits.rideHeight);
+    if (newSetup.rideHeightRear) newSetup.rideHeightRear = clamp(newSetup.rideHeightRear, limits.rideHeight);
+    if (newSetup.naturalFrequencyFront) newSetup.naturalFrequencyFront = clamp(newSetup.naturalFrequencyFront, limits.naturalFrequency);
+    if (newSetup.naturalFrequencyRear) newSetup.naturalFrequencyRear = clamp(newSetup.naturalFrequencyRear, limits.naturalFrequency);
+    
     setTuningSetup(newSetup);
   };
 
@@ -194,8 +235,8 @@ export default function TuningApp() {
   const metrics = useMemo((): PerformanceMetrics => {
     if (!selectedCar) return {} as PerformanceMetrics;
 
-    const power = calculateEffectivePower(customBhp || selectedCar.bhp, tuningSetup.powerRestriction || 100);
-    const weight = calculateTotalWeight(customWeight || selectedCar.weight, tuningSetup.ballastKg || 0);
+    const power = calculateEffectivePower(parseInt(customBhp) || selectedCar.bhp, tuningSetup.powerRestriction || 100);
+    const weight = calculateTotalWeight(parseInt(customWeight) || selectedCar.weight, tuningSetup.ballastKg || 0);
     const tireGrip = tuningSetup.tireGripCoefficient || 1.0;
 
     const t0to60 = calculate0to60Time(power, weight, tireGrip, tuningSetup.differentialAcceleration || 30);
@@ -296,24 +337,24 @@ export default function TuningApp() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="text-xs text-zinc-500 mb-1 block">Custom BHP</label>
-                  <Input 
-                    type="number" 
-                    placeholder={selectedCar?.bhp?.toString() || '0'} 
-                    className="bg-zinc-950 border-zinc-800 h-8"
-                    onChange={(e) => setCustomBhp(e.target.value ? parseInt(e.target.value) : null)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-zinc-500 mb-1 block">Custom Weight (KG)</label>
-                  <Input 
-                    type="number" 
-                    placeholder={selectedCar?.weight?.toString() || '0'} 
-                    className="bg-zinc-950 border-zinc-800 h-8"
-                    onChange={(e) => setCustomWeight(e.target.value ? parseInt(e.target.value) : null)}
-                  />
-                </div>
+<div>
+                <label className="text-xs text-zinc-500 mb-1 block">BHP</label>
+                <Input 
+                  type="number" 
+                  value={customBhp || selectedCar?.bhp || ''} 
+                  className="bg-zinc-950 border-zinc-800 h-8"
+                  onChange={(e) => setCustomBhp(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 mb-1 block">Weight (KG)</label>
+                <Input 
+                  type="number" 
+                  value={customWeight || selectedCar?.weight || ''} 
+                  className="bg-zinc-950 border-zinc-800 h-8"
+                  onChange={(e) => setCustomWeight(e.target.value)}
+                />
+              </div>
               </div>
             </div>
           </Card>
@@ -475,6 +516,25 @@ export default function TuningApp() {
                   className={tuningMode === 'braking' ? 'bg-red-600 hover:bg-red-700' : 'border-zinc-800'}
                 >Brake</Button>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-6 bg-zinc-950 p-2 border border-zinc-800 rounded-sm">
+              <span className="text-[10px] text-zinc-500 w-full mb-1 uppercase">Track Presets</span>
+              <Button 
+                variant="outline" size="xs" 
+                onClick={() => applyTrackPreset('aggressive')}
+                className="text-[10px] h-6 border-zinc-800 hover:bg-red-900/20"
+              >Aggressive</Button>
+              <Button 
+                variant="outline" size="xs" 
+                onClick={() => applyTrackPreset('balanced')}
+                className="text-[10px] h-6 border-zinc-800 hover:bg-red-900/20"
+              >Balanced</Button>
+              <Button 
+                variant="outline" size="xs" 
+                onClick={() => applyTrackPreset('conservative')}
+                className="text-[10px] h-6 border-zinc-800 hover:bg-red-900/20"
+              >Conservative</Button>
             </div>
 
             <Tabs defaultValue="suspension" className="w-full">

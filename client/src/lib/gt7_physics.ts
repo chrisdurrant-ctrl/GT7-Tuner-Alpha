@@ -87,6 +87,9 @@ export interface PerformanceMetrics {
   // Overall
   overallRating: number; // 0-100
   balanceScore: number; // How balanced the setup is
+  handlingBalance: number; // -100 (Understeer) to 100 (Oversteer)
+  aeroBalance: number; // Front %
+  suspensionStiffness: number; // 0-100
 }
 
 // Constants based on GT7 physics
@@ -412,4 +415,58 @@ export function calculateBalanceScore(setup: TuningSetup): number {
   if (nfDiff > 0.5) score -= (nfDiff - 0.5) * 10;
   
   return Math.max(0, score);
+}
+
+/**
+ * Calculate handling balance (-100 to 100)
+ * Negative = Understeer, Positive = Oversteer
+ */
+export function calculateHandlingBalance(setup: TuningSetup): number {
+  let balance = 0;
+  
+  // ARB Balance
+  const arbDiff = setup.antiRollBarRear - setup.antiRollBarFront;
+  balance += arbDiff * 10;
+  
+  // NF Balance
+  const nfDiff = (setup.naturalFrequencyRear - setup.naturalFrequencyFront) * 100;
+  balance += (nfDiff - 10) * 2; // Offset by 0.1Hz as neutral
+  
+  // Camber Balance
+  const camberDiff = setup.camberFront - setup.camberRear;
+  balance += camberDiff * 5;
+  
+  // Toe Balance
+  balance -= setup.toeInFront * 100;
+  balance += setup.toeInRear * 200;
+  
+  // Aero Balance
+  if (setup.downforceFront > 0 && setup.downforceRear > 0) {
+    const aeroRatio = setup.downforceFront / (setup.downforceFront + setup.downforceRear);
+    balance += (aeroRatio - 0.33) * 300; // 33% front is neutral
+  }
+  
+  // Brake Balance
+  balance += setup.brakeBalance * 5;
+  
+  return Math.min(100, Math.max(-100, balance));
+}
+
+/**
+ * Calculate aero balance percentage (Front %)
+ */
+export function calculateAeroBalance(setup: TuningSetup): number {
+  const total = setup.downforceFront + setup.downforceRear;
+  if (total === 0) return 0;
+  return (setup.downforceFront / total) * 100;
+}
+
+/**
+ * Calculate overall suspension stiffness (0-100)
+ */
+export function calculateSuspensionStiffness(setup: TuningSetup, limits: [number, number]): number {
+  const avgNF = (setup.naturalFrequencyFront + setup.naturalFrequencyRear) / 2;
+  const range = limits[1] - limits[0];
+  if (range === 0) return 50;
+  return ((avgNF - limits[0]) / range) * 100;
 }

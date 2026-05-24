@@ -22,7 +22,10 @@ import {
   calculateCorneringRating,
   calculateTopSpeedRating,
   calculateOverallRating,
-  calculateBalanceScore
+  calculateBalanceScore,
+  calculateHandlingBalance,
+  calculateAeroBalance,
+  calculateSuspensionStiffness
 } from '@/lib/gt7_physics';
 import { getDynamicLimits, CarCategory } from '@/lib/tuning_rules';
 import { Card } from '@/components/ui/card';
@@ -303,6 +306,9 @@ export default function TuningApp() {
     const topSpeedRating = calculateTopSpeedRating(tSpeed);
     const overall = calculateOverallRating(accelRating, brakeRating, cornerRating, topSpeedRating);
     const balance = calculateBalanceScore(tuningSetup as TuningSetup);
+    const handlingBalance = calculateHandlingBalance(tuningSetup as TuningSetup);
+    const aeroBalance = calculateAeroBalance(tuningSetup as TuningSetup);
+    const suspensionStiffness = calculateSuspensionStiffness(tuningSetup as TuningSetup, limits.naturalFrequency);
 
     return {
       acceleration0to60: t0to60,
@@ -319,9 +325,47 @@ export default function TuningApp() {
       topSpeed: tSpeed,
       topSpeedRating: topSpeedRating,
       overallRating: overall,
-      balanceScore: balance
+      balanceScore: balance,
+      handlingBalance,
+      aeroBalance,
+      suspensionStiffness
     };
-  }, [selectedCar, tuningSetup, customBhp, customWeight]);
+  }, [selectedCar, tuningSetup, customBhp, customWeight, limits]);
+
+  const proOptimize = () => {
+    const clamp = (val: number, range: [number, number]) => Math.min(Math.max(val, range[0]), range[1]);
+    const nfBase = limits.naturalFrequency[0];
+    const nfRange = limits.naturalFrequency[1] - limits.naturalFrequency[0];
+    
+    const drivetrain = selectedCar?.drivetrain || 'FR';
+    let lsdInit = 10, lsdAccel = 30, lsdBraking = 15;
+    if (drivetrain === 'FF') { lsdInit = 15; lsdAccel = 35; lsdBraking = 10; }
+    else if (drivetrain === 'MR') { lsdInit = 8; lsdAccel = 15; lsdBraking = 25; }
+    else if (drivetrain === 'RR') { lsdInit = 10; lsdAccel = 15; lsdBraking = 30; }
+    else if (drivetrain === 'AWD') { lsdInit = 8; lsdAccel = 20; lsdBraking = 10; }
+
+    const newSetup: Partial<TuningSetup> = {
+      ...tuningSetup,
+      naturalFrequencyFront: clamp(nfBase + nfRange * 0.6, limits.naturalFrequency),
+      naturalFrequencyRear: clamp(nfBase + nfRange * 0.65, limits.naturalFrequency),
+      antiRollBarFront: 6,
+      antiRollBarRear: 5,
+      damperCompressionFront: 32,
+      damperCompressionRear: 32,
+      damperExpansionFront: 42,
+      damperExpansionRear: 42,
+      camberFront: 2.5,
+      camberRear: 1.5,
+      toeInFront: -0.05,
+      toeInRear: 0.15,
+      differentialInitialTorque: lsdInit,
+      differentialAcceleration: lsdAccel,
+      differentialBraking: lsdBraking,
+      brakeBalance: drivetrain === 'FF' ? -1 : 1
+    };
+    
+    setTuningSetup(newSetup);
+  };
 
   const radarData = [
     { subject: 'Accel', A: metrics.accelerationRating, fullMark: 100 },
@@ -395,80 +439,49 @@ export default function TuningApp() {
             </div>
           </Card>
 
-          <Card className="bg-zinc-900 border-zinc-800 p-6 shadow-2xl">
-            <h2 className="text-red-600 text-xl mb-4 border-b border-red-900/50 pb-2 italic font-black tracking-tighter">Master Calibration</h2>
-            <p className="text-[10px] text-zinc-500 mb-4 uppercase">Input your car's in-game limits for perfect setups</p>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Ride Height (Min/Max)</label>
-                  <div className="flex gap-1">
-                    <Input 
-                      type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.rideHeight[0] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, rideHeight: [e.target.value ? parseInt(e.target.value) : null, prev.rideHeight[1]] }))}
-                    />
-                    <Input 
-                      type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.rideHeight[1] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, rideHeight: [prev.rideHeight[0], e.target.value ? parseInt(e.target.value) : null] }))}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Nat. Freq. (Min/Max)</label>
-                  <div className="flex gap-1">
-                    <Input 
-                      type="number" step="0.01" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.naturalFrequency[0] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, naturalFrequency: [e.target.value ? parseFloat(e.target.value) : null, prev.naturalFrequency[1]] }))}
-                    />
-                    <Input 
-                      type="number" step="0.01" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.naturalFrequency[1] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, naturalFrequency: [prev.naturalFrequency[0], e.target.value ? parseFloat(e.target.value) : null] }))}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Aero Front (Min/Max)</label>
-                  <div className="flex gap-1">
-                    <Input 
-                      type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.downforceFront[0] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceFront: [e.target.value ? parseInt(e.target.value) : null, prev.downforceFront[1]] }))}
-                    />
-                    <Input 
-                      type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.downforceFront[1] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceFront: [prev.downforceFront[0], e.target.value ? parseInt(e.target.value) : null] }))}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Aero Rear (Min/Max)</label>
-                  <div className="flex gap-1">
-                    <Input 
-                      type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.downforceRear[0] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceRear: [e.target.value ? parseInt(e.target.value) : null, prev.downforceRear[1]] }))}
-                    />
-                    <Input 
-                      type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]"
-                      value={manualLimits.downforceRear[1] || ''}
-                      onChange={(e) => setManualLimits(prev => ({ ...prev, downforceRear: [prev.downforceRear[0], e.target.value ? parseInt(e.target.value) : null] }))}
-                    />
-                  </div>
-                </div>
-              </div>
+          <Card className="bg-zinc-900 border-zinc-800 p-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-red-900/50 pb-2">
+              <h2 className="text-red-600 text-lg italic font-black tracking-tighter uppercase">Master Calibration</h2>
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm" 
-                className="w-full text-[10px] h-7 border-red-900/30 text-red-500 hover:bg-red-900/10"
+                className="text-[10px] h-6 text-zinc-500 hover:text-red-500"
                 onClick={() => setManualLimits({ rideHeight: [null, null], naturalFrequency: [null, null], downforceFront: [null, null], downforceRear: [null, null] })}
-              >Reset Calibration</Button>
+              >Reset</Button>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Ride Height</label>
+                  <div className="flex gap-1">
+                    <Input type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.rideHeight[0] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, rideHeight: [e.target.value ? parseInt(e.target.value) : null, prev.rideHeight[1]] }))} />
+                    <Input type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.rideHeight[1] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, rideHeight: [prev.rideHeight[0], e.target.value ? parseInt(e.target.value) : null] }))} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Nat. Freq.</label>
+                  <div className="flex gap-1">
+                    <Input type="number" step="0.01" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.naturalFrequency[0] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, naturalFrequency: [e.target.value ? parseFloat(e.target.value) : null, prev.naturalFrequency[1]] }))} />
+                    <Input type="number" step="0.01" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.naturalFrequency[1] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, naturalFrequency: [prev.naturalFrequency[0], e.target.value ? parseFloat(e.target.value) : null] }))} />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Aero Front</label>
+                  <div className="flex gap-1">
+                    <Input type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.downforceFront[0] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, downforceFront: [e.target.value ? parseInt(e.target.value) : null, prev.downforceFront[1]] }))} />
+                    <Input type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.downforceFront[1] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, downforceFront: [prev.downforceFront[0], e.target.value ? parseInt(e.target.value) : null] }))} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase">Aero Rear</label>
+                  <div className="flex gap-1">
+                    <Input type="number" placeholder="Min" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.downforceRear[0] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, downforceRear: [e.target.value ? parseInt(e.target.value) : null, prev.downforceRear[1]] }))} />
+                    <Input type="number" placeholder="Max" className="bg-zinc-950 border-zinc-800 h-7 text-[10px]" value={manualLimits.downforceRear[1] || ''} onChange={(e) => setManualLimits(prev => ({ ...prev, downforceRear: [prev.downforceRear[0], e.target.value ? parseInt(e.target.value) : null] }))} />
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
 
@@ -559,22 +572,46 @@ export default function TuningApp() {
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="bg-zinc-950 p-2 border border-zinc-800">
-                  <span className="text-zinc-500 block">0-60 MPH</span>
-                  <span className="text-lg text-zinc-100">{metrics.acceleration0to60.toFixed(2)}s</span>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] uppercase tracking-wider">
+                    <span className="text-zinc-500">Handling Balance</span>
+                    <span className={metrics.handlingBalance < -10 ? "text-blue-500" : metrics.handlingBalance > 10 ? "text-orange-500" : "text-green-500"}>
+                      {metrics.handlingBalance < -10 ? "Understeer" : metrics.handlingBalance > 10 ? "Oversteer" : "Neutral"}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800 relative">
+                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-zinc-800 z-10" />
+                    <div 
+                      className={`h-full absolute transition-all duration-500 ${metrics.handlingBalance < 0 ? "bg-blue-600" : "bg-orange-600"}`}
+                      style={{ 
+                        left: metrics.handlingBalance < 0 ? `${50 + metrics.handlingBalance / 2}%` : "50%",
+                        width: `${Math.abs(metrics.handlingBalance) / 2}%`
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="bg-zinc-950 p-2 border border-zinc-800">
-                  <span className="text-zinc-500 block">Top Speed</span>
-                  <span className="text-lg text-zinc-100">{Math.round(metrics.topSpeed)} km/h</span>
+
+                <div className="grid grid-cols-2 gap-2 text-[10px] uppercase">
+                  <div className="bg-zinc-950 p-2 border border-zinc-800">
+                    <span className="text-zinc-500 block mb-1">Aero Balance</span>
+                    <span className="text-zinc-100 font-bold">{Math.round(metrics.aeroBalance)}% FRONT</span>
+                  </div>
+                  <div className="bg-zinc-950 p-2 border border-zinc-800">
+                    <span className="text-zinc-500 block mb-1">Stiffness</span>
+                    <span className="text-zinc-100 font-bold">{Math.round(metrics.suspensionStiffness)}%</span>
+                  </div>
                 </div>
-                <div className="bg-zinc-950 p-2 border border-zinc-800">
-                  <span className="text-zinc-500 block">Braking (100-0)</span>
-                  <span className="text-lg text-zinc-100">{metrics.brakingDistance100to0.toFixed(1)}m</span>
-                </div>
-                <div className="bg-zinc-950 p-2 border border-zinc-800">
-                  <span className="text-zinc-500 block">Lateral G</span>
-                  <span className="text-lg text-zinc-100">{metrics.lateralAcceleration.toFixed(2)}G</span>
+
+                <div className="grid grid-cols-2 gap-2 text-[10px] uppercase">
+                  <div className="bg-zinc-950 p-2 border border-zinc-800">
+                    <span className="text-zinc-500 block">0-60 MPH</span>
+                    <span className="text-sm text-zinc-100 font-bold">{metrics.acceleration0to60.toFixed(2)}s</span>
+                  </div>
+                  <div className="bg-zinc-950 p-2 border border-zinc-800">
+                    <span className="text-zinc-500 block">Top Speed</span>
+                    <span className="text-sm text-zinc-100 font-bold">{Math.round(metrics.topSpeed)} km/h</span>
+                  </div>
                 </div>
               </div>
               <div className="pt-4 border-t border-zinc-800">
@@ -604,6 +641,12 @@ export default function TuningApp() {
                 <p className="text-xs text-zinc-500">Authentic GT7 Physics Engine v2.0</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant="default"
+                  size="sm"
+                  onClick={proOptimize}
+                  className="bg-zinc-100 text-zinc-900 hover:bg-zinc-200 font-bold uppercase italic tracking-tighter"
+                >Pro-Optimize</Button>
                 <Button 
                   variant={tuningMode === 'balanced' ? 'default' : 'outline'}
                   size="sm"
